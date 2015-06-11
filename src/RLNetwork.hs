@@ -11,10 +11,9 @@ import Data.Binary.Put
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import Data.Word
+import Network.Simple.TCP
 import System.Environment
 import System.IO.Error
-
-import Network.Simple.TCP
 
 -- Connection types
 kExperimentConnection  = 1
@@ -69,7 +68,6 @@ glueConnect func =
       (\_ -> return kDefaultPort)
     let func' :: (Socket, SockAddr) -> IO r
         func' (sock, addr) = do
-          putStrLn "RL-Glue Haskell Codec"
           putStrLn ("Connecting to " ++ (show addr) ++ " on port " ++ port ++ "...")
           func (sock, addr)
     connect host port func'
