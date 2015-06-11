@@ -1,6 +1,8 @@
 module RLNetwork where
 
 import Control.Exception
+import Data.Binary.Put
+import Data.Word
 import System.Environment
 import System.IO.Error
 
@@ -46,8 +48,8 @@ kIntSize = 4
 kDoubleSize = 8
 kCharSize = 1
 
-go :: ((Socket, SockAddr) -> IO r) -> IO r
-go func =
+glueConnect :: ((Socket, SockAddr) -> IO r) -> IO r
+glueConnect func =
   do
     host <- catchJust
       (\e -> if isDoesNotExistError e then Just () else Nothing)
@@ -58,3 +60,10 @@ go func =
       (getEnv "RLGLUE_PORT")
       (\_ -> return kDefaultPort)
     connect host port func
+
+-- Send/Recv helper functions
+doCallWithNoParams :: Socket -> Word32 -> IO ()
+doCallWithNoParams sock x =
+  do
+    let bs = runPut (putWord32be x >> putWord32be (fromIntegral 0))
+    sendLazy sock bs
