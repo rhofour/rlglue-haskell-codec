@@ -100,6 +100,7 @@ getString sock =
     let length = fromIntegral $ runGet (getWord32be) (LBS.fromStrict bs)
     MaybeT $ recv sock (4*length)
 
+-- Other functions
 confirmState :: Socket -> Integer -> IO ()
 confirmState sock exptState =
   do
@@ -112,3 +113,20 @@ confirmState sock exptState =
         putStrLn $ "State " ++ (show state) ++ " doesn't match expected state " ++
           (show exptState) ++ ". Exiting..."
         exitWith (ExitFailure 1)
+
+sendAgentMessage :: Socket -> BS.ByteString -> IO BS.ByteString
+sendAgentMessage sock msg =
+  do
+    let 
+      packedMsg = 
+        runPut (
+          putWord32be (fromIntegral kRLAgentMessage) >>
+          putWord32be (fromIntegral (4 + BS.length msg)) >>
+          putByteString msg)
+    sendLazy sock packedMsg
+    resp <- runMaybeT (getString sock)
+    case resp of
+      Nothing -> do
+        putStrLn "Error: Could not read response from agent message"
+        exitWith (ExitFailure 1)
+      Just x -> return x
