@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module RLNetwork where
 
 import Control.Exception
@@ -54,7 +56,7 @@ kIntSize = 4
 kDoubleSize = 8
 kCharSize = 1
 
-glueConnect :: ((Socket, SockAddr) -> IO r) -> IO r
+glueConnect :: forall r. ((Socket, SockAddr) -> IO r) -> IO r
 glueConnect func =
   do
     host <- catchJust
@@ -65,7 +67,12 @@ glueConnect func =
       (\e -> if isDoesNotExistError e then Just () else Nothing)
       (getEnv "RLGLUE_PORT")
       (\_ -> return kDefaultPort)
-    connect host port func
+    let func' :: (Socket, SockAddr) -> IO r
+        func' (sock, addr) = do
+          putStrLn "RL-Glue Haskell Codec"
+          putStrLn ("Connecting to " ++ (show addr) ++ " on port " ++ port ++ "...")
+          func (sock, addr)
+    connect host port func'
 
 -- Send/Recv helper functions
 doCallWithNoParams :: Socket -> Word32 -> IO ()

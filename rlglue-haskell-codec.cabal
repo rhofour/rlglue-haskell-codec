@@ -22,3 +22,10 @@ library
   build-depends:       base >=4.7 && <4.8, network-simple, transformers, exceptions, binary, bytestring
   hs-source-dirs:      src
   default-language:    Haskell2010
+
+executable test
+  Main-is:             Test.hs
+  build-depends:       base >=4.7 && <4.8, network-simple, transformers, exceptions, binary, bytestring
+  other-modules:       RLNetwork
+  hs-source-dirs:      src
+  default-language:    Haskell2010
