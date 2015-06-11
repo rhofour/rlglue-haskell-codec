@@ -21,3 +21,8 @@ doExperiments (sock, addr) taskSpec =
     resp <- sendAgentMessageStr sock "If at first you don't succeed; call it version 1.0"
     putStrLn ("Agent responded to \"If at first you don't succeed; call it version 1.0?\" with: " ++ (show resp))
 
+    resp <- sendEnvMessageStr sock "what is your name?"
+    putStrLn ("Environment responded to \"what is your name?\" with: " ++ (show resp))
+
+    resp <- sendEnvMessageStr sock "If at first you don't succeed; call it version 1.0"
+    putStrLn ("Environment responded to \"If at first you don't succeed; call it version 1.0?\" with: " ++ (show resp))

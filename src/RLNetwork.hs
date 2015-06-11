@@ -115,18 +115,18 @@ confirmState sock exptState =
           (show exptState) ++ ". Exiting..."
         exitWith (ExitFailure 1)
 
-sendAgentMessage :: Socket -> BS.ByteString -> IO BS.ByteString
-sendAgentMessage sock msg =
+sendMessage :: Integer -> Socket -> BS.ByteString -> IO BS.ByteString
+sendMessage selByte sock msg =
   do
     let 
       packedMsg = 
         runPut (
-          putWord32be (fromIntegral kRLAgentMessage) >>
+          putWord32be (fromIntegral selByte) >>
           putWord32be (fromIntegral (4 + BS.length msg)) >>
           putWord32be (fromIntegral (BS.length msg)) >>
           putByteString msg)
     sendLazy sock packedMsg
-    confirmState sock (fromIntegral kRLAgentMessage)
+    confirmState sock selByte 
     resp <- runMaybeT (getString sock)
     case resp of
       Nothing -> do
@@ -134,5 +134,14 @@ sendAgentMessage sock msg =
         exitWith (ExitFailure 1)
       Just x -> return x
 
+sendAgentMessage :: Socket -> BS.ByteString -> IO BS.ByteString
+sendAgentMessage = sendMessage (fromIntegral kRLAgentMessage)
+
 sendAgentMessageStr :: Socket -> String -> IO BS.ByteString
 sendAgentMessageStr sock msg = sendAgentMessage sock (BSC.pack msg)
+
+sendEnvMessage :: Socket -> BS.ByteString -> IO BS.ByteString
+sendEnvMessage = sendMessage (fromIntegral kRLEnvMessage)
+
+sendEnvMessageStr :: Socket -> String -> IO BS.ByteString
+sendEnvMessageStr sock msg = sendEnvMessage sock (BSC.pack msg)
