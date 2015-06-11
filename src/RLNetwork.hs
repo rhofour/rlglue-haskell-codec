@@ -6,6 +6,7 @@ import Control.Monad.Trans.Class
 import Control.Monad.Trans.Maybe
 import Data.Binary.Get
 import Data.Binary.Put
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import Data.Word
 import System.Environment
@@ -83,3 +84,10 @@ doStandardRecv sock =
         glueState <- getWord32le
         dataSize <- getWord32le
         return (fromIntegral glueState, fromIntegral dataSize)
+
+getString :: Socket -> MaybeT IO BS.ByteString
+getString sock =
+  do
+    bs <- MaybeT $ recv sock (4)
+    let length = fromIntegral $ runGet (getWord32le) (LBS.fromStrict bs)
+    MaybeT $ recv sock (4*length)
