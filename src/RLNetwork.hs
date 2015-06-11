@@ -9,6 +9,7 @@ import Control.Monad.Trans.Maybe
 import Data.Binary.Get
 import Data.Binary.Put
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as BSC
 import qualified Data.ByteString.Lazy as LBS
 import Data.Word
 import Network.Simple.TCP
@@ -122,11 +123,16 @@ sendAgentMessage sock msg =
         runPut (
           putWord32be (fromIntegral kRLAgentMessage) >>
           putWord32be (fromIntegral (4 + BS.length msg)) >>
+          putWord32be (fromIntegral (BS.length msg)) >>
           putByteString msg)
     sendLazy sock packedMsg
+    confirmState sock (fromIntegral kRLAgentMessage)
     resp <- runMaybeT (getString sock)
     case resp of
       Nothing -> do
         putStrLn "Error: Could not read response from agent message"
         exitWith (ExitFailure 1)
       Just x -> return x
+
+sendAgentMessageStr :: Socket -> String -> IO BS.ByteString
+sendAgentMessageStr sock msg = sendAgentMessage sock (BSC.pack msg)
