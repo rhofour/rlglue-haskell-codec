@@ -13,6 +13,7 @@ import qualified Data.ByteString.Lazy as LBS
 import Data.Word
 import Network.Simple.TCP
 import System.Environment
+import System.Exit
 import System.IO.Error
 
 -- Connection types
@@ -69,7 +70,9 @@ glueConnect func =
     let func' :: (Socket, SockAddr) -> IO r
         func' (sock, addr) = do
           putStrLn ("Connecting to " ++ (show addr) ++ " on port " ++ port ++ "...")
-          func (sock, addr)
+          x <- func (sock, addr)
+          putStrLn ("Disconnecting from " ++ (show addr) ++ " on port " ++ port ++ "...")
+          return x
     connect host port func'
 
 -- Send/Recv helper functions
@@ -79,20 +82,33 @@ doCallWithNoParams sock x =
     let bs = runPut (putWord32be x >> putWord32be (fromIntegral 0))
     sendLazy sock bs
 
-doStandardRecv :: Socket -> MaybeT IO (Int, Int)
+doStandardRecv :: Socket -> MaybeT IO (Integer, Integer)
 doStandardRecv sock =
   do
     bs <- MaybeT $ recv sock (2*4)
     return $ runGet parseBytes (LBS.fromStrict bs)
     where
       parseBytes = do
-        glueState <- getWord32le
-        dataSize <- getWord32le
+        glueState <- getWord32be
+        dataSize <- getWord32be
         return (fromIntegral glueState, fromIntegral dataSize)
 
 getString :: Socket -> MaybeT IO BS.ByteString
 getString sock =
   do
     bs <- MaybeT $ recv sock (4)
-    let length = fromIntegral $ runGet (getWord32le) (LBS.fromStrict bs)
+    let length = fromIntegral $ runGet (getWord32be) (LBS.fromStrict bs)
     MaybeT $ recv sock (4*length)
+
+confirmState :: Socket -> Integer -> IO ()
+confirmState sock exptState =
+  do
+    x <- runMaybeT (doStandardRecv sock)
+    case x of
+      Nothing -> do
+        putStrLn "Failed to receive state. Exiting..."
+        exitWith (ExitFailure 1)
+      Just (state, size) -> if state == exptState then return () else do
+        putStrLn $ "State " ++ (show state) ++ " doesn't match expected state " ++
+          (show exptState) ++ ". Exiting..."
+        exitWith (ExitFailure 1)
