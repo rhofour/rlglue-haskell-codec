@@ -1,13 +1,14 @@
 module RLExperiment where
 
 import Control.Monad.Trans.Maybe
+import qualified Data.ByteString as BS
 import Data.Version (showVersion)
 import Network.Simple.TCP
 
 import Paths_rlglue_haskell_codec (version)
 import RLNetwork
 
-runExperiment :: ((Socket, SockAddr) -> IO r) -> IO ()
+runExperiment :: ((Socket, SockAddr) -> BS.ByteString -> IO ()) -> IO ()
 runExperiment func =
   let 
     func' (sock, addr) =
@@ -19,10 +20,11 @@ runExperiment func =
         doCallWithNoParams sock (fromIntegral kRLInit)
         confirmState sock kRLInit
         taskSpec <- runMaybeT (getString sock)
-        putStrLn ("Task Spec: " ++ (show taskSpec))
 
         -- Do stuff
-        func (sock, addr)
+        case taskSpec of
+          Nothing -> putStrLn "Error: Could not read task spec"
+          Just x -> func (sock, addr) x
 
         -- Cleanup
         doCallWithNoParams sock (fromIntegral kRLCleanup)
