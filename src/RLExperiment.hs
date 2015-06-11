@@ -14,10 +14,10 @@ runExperiment func =
     func' (sock, addr) =
       do
         putStrLn ("RL-Glue Haskell Experiment Codec (Version " ++ (showVersion version) ++ ")")
-        doCallWithNoParams sock (fromIntegral kExperimentConnection)
+        doCallWithNoParams sock kExperimentConnection
 
         -- Initialization
-        doCallWithNoParams sock (fromIntegral kRLInit)
+        doCallWithNoParams sock kRLInit
         confirmState sock kRLInit
         taskSpec <- runMaybeT (getString sock)
 
@@ -27,7 +27,7 @@ runExperiment func =
           Just x -> func (sock, addr) x
 
         -- Cleanup
-        doCallWithNoParams sock (fromIntegral kRLCleanup)
+        doCallWithNoParams sock kRLCleanup
         confirmState sock kRLCleanup
   in
     glueConnect func'
