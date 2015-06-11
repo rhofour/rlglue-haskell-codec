@@ -1,7 +1,12 @@
 module RLNetwork where
 
 import Control.Exception
+import Control.Monad
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Maybe
+import Data.Binary.Get
 import Data.Binary.Put
+import qualified Data.ByteString.Lazy as LBS
 import Data.Word
 import System.Environment
 import System.IO.Error
@@ -67,3 +72,14 @@ doCallWithNoParams sock x =
   do
     let bs = runPut (putWord32be x >> putWord32be (fromIntegral 0))
     sendLazy sock bs
+
+doStandardRecv :: Socket -> MaybeT IO (Int, Int)
+doStandardRecv sock =
+  do
+    bs <- MaybeT $ recv sock (2*4)
+    return $ runGet parseBytes (LBS.fromStrict bs)
+    where
+      parseBytes = do
+        glueState <- getWord32le
+        dataSize <- getWord32le
+        return (fromIntegral glueState, fromIntegral dataSize)
