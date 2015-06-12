@@ -1,5 +1,7 @@
 module Main where
 
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.State.Lazy
 import qualified Data.ByteString as BS
 import Data.Binary.Put
 import Network.Simple.TCP
@@ -31,14 +33,16 @@ doExperiments (sock, addr) =
 
     putStrLn "\n----------Running a few episodes----------"
 
-    runEpisode sock 100
-    runEpisode sock 100
-    runEpisode sock 100
-    runEpisode sock 100
-    runEpisode sock 100
-    runEpisode sock 1
-    -- Run one without a limit
-    runEpisode sock 0
+    evalStateT
+      (do
+        prettyRunEpisode sock 100
+        prettyRunEpisode sock 100
+        prettyRunEpisode sock 100
+        prettyRunEpisode sock 100
+        prettyRunEpisode sock 100
+        prettyRunEpisode sock 1
+        -- Run one without a limit
+        prettyRunEpisode sock 0) 1
     cleanupExperiment sock
 
     putStrLn "\n----------Stepping through an episode----------"
@@ -59,6 +63,18 @@ doExperiments (sock, addr) =
     putStrLn $ "It ran for " ++ (show totalSteps) ++ " steps, total reward was: " ++ (show totalReward)
 
     cleanupExperiment sock
+
+prettyRunEpisode :: Socket -> Int -> StateT Int IO ()
+prettyRunEpisode sock steps =
+  do
+    terminal <- lift $ runEpisode sock steps
+    totalSteps <- lift $ getNumSteps sock
+    totalReward <- lift $ getReturn sock
+
+    episodeNum <- get
+    lift $ putStrLn $ "Episode " ++ (show episodeNum) ++ "\t " ++ (show totalSteps) ++ " steps \t" ++
+      (show totalReward) ++ " total reward\t" ++ (show terminal) ++ " natural end"
+    modify (+1)
 
 loopUntil :: IO Bool -> IO ()
 loopUntil f = do
