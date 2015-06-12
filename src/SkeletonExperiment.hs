@@ -1,11 +1,8 @@
 module Main where
 
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
-import Data.Binary.Get
 import Data.Binary.Put
 import Network.Simple.TCP
-import System.Exit
 
 import RLExperiment
 import RLNetwork
