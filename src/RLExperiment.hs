@@ -116,5 +116,6 @@ getNetworkValue byte  f errMsg sock =
         exitWith (ExitFailure 1)
       Just x' -> return x'
 
-numSteps :: Socket -> IO Int
-numSteps = getNetworkValue kRLNumSteps getInt "Error: Could not read number of steps from network."
+getNumSteps = getNetworkValue kRLNumSteps getInt "Error: Could not read number of steps from network."
+
+getReturn = getNetworkValue kRLReturn getDouble "Error: Could not read return from network."

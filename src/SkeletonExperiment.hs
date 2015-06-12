@@ -54,8 +54,9 @@ doExperiments (sock, addr) =
       return (terminal > 0)
 
     putStrLn "\n----------Summary----------"
-    totalSteps <- numSteps sock
-    putStrLn $ "It ran for " ++ (show totalSteps) ++ " steps, total reward was: "
+    totalSteps <- getNumSteps sock
+    totalReward <- getReturn sock
+    putStrLn $ "It ran for " ++ (show totalSteps) ++ " steps, total reward was: " ++ (show totalReward)
 
     cleanupExperiment sock
 

@@ -105,8 +105,14 @@ doStandardRecv sock =
 getInt :: Socket -> MaybeT IO Int
 getInt sock =
   do
-    bs <- MaybeT $ recv sock (4)
-    return . fromIntegral $ runGet (getWord32be) (LBS.fromStrict bs)
+    bs <- MaybeT $ recv sock 4
+    return . fromIntegral $ runGet getWord32be (LBS.fromStrict bs)
+
+getDouble :: Socket -> MaybeT IO Double
+getDouble sock =
+  do
+    bs <- MaybeT $ recv sock 8
+    return  $ runGet getFloat64be (LBS.fromStrict bs)
 
 getString :: Socket -> MaybeT IO BS.ByteString
 getString sock =
