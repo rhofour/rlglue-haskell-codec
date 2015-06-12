@@ -90,6 +90,7 @@ doCallWithNoParams sock x =
   do
     let bs = runPut (putWord32be x >> putWord32be (0 :: Word32))
     sendLazy sock bs
+    confirmState sock x
 
 doStandardRecv :: Socket -> MaybeT IO (Word32, Word32)
 doStandardRecv sock =

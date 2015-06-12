@@ -20,7 +20,8 @@ runExperiment func =
     func' (sock, addr) =
       do
         putStrLn ("RL-Glue Haskell Experiment Codec (Version " ++ (showVersion version) ++ ")")
-        doCallWithNoParams sock kExperimentConnection
+        let bs = runPut (putWord32be kExperimentConnection >> putWord32be (0 :: Word32))
+        sendLazy sock bs
 
         -- Actually do things
         func (sock, addr)
@@ -31,7 +32,6 @@ initExperiment :: Socket -> IO BS.ByteString
 initExperiment sock =
   do
     doCallWithNoParams sock kRLInit
-    confirmState sock kRLInit
     taskSpec <- runMaybeT (getString sock)
     case taskSpec of
       Nothing -> do
@@ -43,7 +43,6 @@ cleanupExperiment :: Socket -> IO ()
 cleanupExperiment sock =
   do
     doCallWithNoParams sock kRLCleanup
-    confirmState sock kRLCleanup
 
 runEpisode :: Socket -> Int -> IO Int
 runEpisode sock stepLimit =
@@ -67,7 +66,6 @@ startEpisode :: Socket -> IO (Observation, Action)
 startEpisode sock =
   do
     doCallWithNoParams sock kRLStart
-    confirmState sock kRLStart
     x <- runMaybeT (do
       abs1 <- getAbstractType sock
       let obs = Observation abs1 
@@ -84,7 +82,6 @@ stepEpisode :: Socket -> IO (Reward, Observation, Action, Terminal)
 stepEpisode sock =
   do
     doCallWithNoParams sock kRLStep
-    confirmState sock kRLStep
     x <- runMaybeT (do
       bs <- MaybeT $ recv sock (4+8)
       let (terminal, reward) = runGet parseBytes (LBS.fromStrict bs)
@@ -108,7 +105,6 @@ getNetworkValue :: Word32 -> (Socket -> MaybeT IO a) -> String -> Socket -> IO a
 getNetworkValue byte  f errMsg sock =
   do
     doCallWithNoParams sock byte
-    confirmState sock byte
     x <- runMaybeT (f sock)
     case x of
       Nothing -> do
@@ -117,5 +113,7 @@ getNetworkValue byte  f errMsg sock =
       Just x' -> return x'
 
 getNumSteps = getNetworkValue kRLNumSteps getInt "Error: Could not read number of steps from network."
+
+getNumEpisodes = getNetworkValue kRLNumEpisodes getInt "Error: Could not read number of episodes from network."
 
 getReturn = getNetworkValue kRLReturn getDouble "Error: Could not read return from network."
