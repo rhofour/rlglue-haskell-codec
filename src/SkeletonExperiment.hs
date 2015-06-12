@@ -48,7 +48,16 @@ doExperiments (sock, addr) =
     (Observation (RLAbstractType o _ _), Action (RLAbstractType a _ _)) <- startEpisode sock
     putStrLn $ "First observation and action were: " ++ (show (head o)) ++ " and: " ++ (show (head a))
 
-    -- Run one step
-    stepResp <- stepEpisode sock
+    -- Step until episode ends
+    loopUntil $ do
+      (_, _, _, terminal) <- stepEpisode sock
+      return (terminal > 0)
+
+    putStrLn "\n----------Summary----------"
 
     cleanupExperiment sock
+
+loopUntil :: IO Bool -> IO ()
+loopUntil f = do
+  x <- f
+  if x then loopUntil f else return ()
