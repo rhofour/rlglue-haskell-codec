@@ -10,9 +10,10 @@ import RLNetwork
 main = do
   runExperiment doExperiments
 
-doExperiments :: (Socket, SockAddr) -> BS.ByteString -> IO ()
-doExperiments (sock, addr) taskSpec =
+doExperiments :: (Socket, SockAddr) -> IO ()
+doExperiments (sock, addr) =
   do
+    taskSpec <- initExperiment sock
     putStrLn ("Sent task spec: " ++ (show taskSpec))
 
     putStrLn "\n----------Sending some sample messages----------"
@@ -38,5 +39,6 @@ doExperiments (sock, addr) taskSpec =
     runEpisode sock 1
     -- Run one without a limit
     runEpisode sock 0
-    return ()
+
+    cleanupExperiment sock
 

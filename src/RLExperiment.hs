@@ -12,7 +12,7 @@ import System.Exit
 import Paths_rlglue_haskell_codec (version)
 import RLNetwork
 
-runExperiment :: ((Socket, SockAddr) -> BS.ByteString -> IO ()) -> IO ()
+runExperiment :: ((Socket, SockAddr) -> IO ()) -> IO ()
 runExperiment func =
   let 
     func' (sock, addr) =
@@ -20,21 +20,28 @@ runExperiment func =
         putStrLn ("RL-Glue Haskell Experiment Codec (Version " ++ (showVersion version) ++ ")")
         doCallWithNoParams sock kExperimentConnection
 
-        -- Initialization
-        doCallWithNoParams sock kRLInit
-        confirmState sock kRLInit
-        taskSpec <- runMaybeT (getString sock)
-
-        -- Do stuff
-        case taskSpec of
-          Nothing -> putStrLn "Error: Could not read task spec"
-          Just x -> func (sock, addr) x
-
-        -- Cleanup
-        doCallWithNoParams sock kRLCleanup
-        confirmState sock kRLCleanup
+        -- Actually do things
+        func (sock, addr)
   in
     glueConnect func'
+
+initExperiment :: Socket -> IO BS.ByteString
+initExperiment sock =
+  do
+    doCallWithNoParams sock kRLInit
+    confirmState sock kRLInit
+    taskSpec <- runMaybeT (getString sock)
+    case taskSpec of
+      Nothing -> do
+        putStrLn "Error: Could not read task spec"
+        exitWith (ExitFailure 1)
+      Just x -> return x
+
+cleanupExperiment :: Socket -> IO ()
+cleanupExperiment sock =
+  do
+    doCallWithNoParams sock kRLCleanup
+    confirmState sock kRLCleanup
 
 runEpisode :: Socket -> Int -> IO Int
 runEpisode sock stepLimit =
