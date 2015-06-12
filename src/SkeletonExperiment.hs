@@ -39,6 +39,16 @@ doExperiments (sock, addr) =
     runEpisode sock 1
     -- Run one without a limit
     runEpisode sock 0
-
     cleanupExperiment sock
 
+    putStrLn "\n----------Stepping through an episode----------"
+    taskSpec <- initExperiment sock
+
+    -- Start an episode
+    (Observation (RLAbstractType o _ _), Action (RLAbstractType a _ _)) <- startEpisode sock
+    putStrLn $ "First observation and action were: " ++ (show (head o)) ++ " and: " ++ (show (head a))
+
+    -- Run one step
+    stepResp <- stepEpisode sock
+
+    cleanupExperiment sock

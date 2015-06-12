@@ -60,6 +60,10 @@ kCharSize = 1
 
 -- Datatypes
 data RLAbstractType = RLAbstractType [Int] [Double] BS.ByteString
+newtype Action = Action RLAbstractType
+newtype Observation = Observation RLAbstractType
+type Reward = Double
+type Terminal = Int
 
 glueConnect :: forall r. ((Socket, SockAddr) -> IO r) -> IO r
 glueConnect func =
@@ -108,13 +112,17 @@ getString sock =
 getAbstractType :: Socket -> MaybeT IO RLAbstractType
 getAbstractType sock =
   do
-    bs <- MaybeT $ recv sock (3*4)
-    return $ runGet parseBytes (LBS.fromStrict bs)
+    bs1 <- MaybeT $ recv sock (3*4)
+    let (numInts, numDoubles, numChars) = runGet parseBytes1 (LBS.fromStrict bs1)
+    bs2 <- MaybeT $ recv sock (numInts*4 + numDoubles*8 + numChars)
+    return $ runGet (parseBytes2 numInts numDoubles numChars) (LBS.fromStrict bs2)
     where
-      parseBytes = do
+      parseBytes1 = do
         numInts <- getWord32be
         numDoubles <- getWord32be
         numChars <- getWord32be
+        return (fromIntegral numInts, fromIntegral numDoubles, fromIntegral numChars)
+      parseBytes2 numInts numDoubles numChars = do
         ints <- replicateM (fromIntegral numInts) getWord32be
         doubles <- replicateM (fromIntegral numDoubles) getFloat64be
         chars <- getByteString (fromIntegral numChars)

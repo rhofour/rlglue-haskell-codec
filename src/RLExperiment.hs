@@ -2,6 +2,7 @@ module RLExperiment where
 
 import Control.Monad.Trans.Maybe
 import Data.Binary.Get
+import Data.Binary.IEEE754
 import Data.Binary.Put
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
@@ -61,8 +62,43 @@ runEpisode sock stepLimit =
         exitWith (ExitFailure 1)
       Just x -> return $ fromIntegral $ runGet getWord32be (LBS.fromStrict x)
 
-startEpisode :: Socket -> IO ()
+startEpisode :: Socket -> IO (Observation, Action)
 startEpisode sock =
   do
     doCallWithNoParams sock kRLStart
     confirmState sock kRLStart
+    x <- runMaybeT (do
+      abs1 <- getAbstractType sock
+      let obs = Observation abs1 
+      abs2 <- getAbstractType sock
+      let act = Action $ abs2
+      return (obs, act))
+    case x of
+      Nothing -> do
+        putStrLn "Error: Could not start episode over network"
+        exitWith (ExitFailure 1)
+      Just x' -> return x'
+
+stepEpisode :: Socket -> IO (Reward, Observation, Action, Terminal)
+stepEpisode sock =
+  do
+    doCallWithNoParams sock kRLStep
+    confirmState sock kRLStep
+    x <- runMaybeT (do
+      bs <- MaybeT $ recv sock (4+8)
+      let (terminal, reward) = runGet parseBytes (LBS.fromStrict bs)
+      abs1 <- getAbstractType sock
+      let obs = Observation abs1 
+      abs2 <- getAbstractType sock
+      let act = Action $ abs2
+      return (reward, obs, act, terminal))
+    case x of
+      Nothing -> do
+        putStrLn "Error: Could not step episode over network"
+        exitWith (ExitFailure 1)
+      Just x' -> return x'
+    where
+      parseBytes = do
+        terminal <- getWord32be
+        reward <- getFloat64be
+        return (fromIntegral terminal, reward)
