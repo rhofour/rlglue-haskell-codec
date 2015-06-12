@@ -102,11 +102,16 @@ doStandardRecv sock =
         dataSize <- getWord32be
         return (glueState, dataSize)
 
+getInt :: Socket -> MaybeT IO Int
+getInt sock =
+  do
+    bs <- MaybeT $ recv sock (4)
+    return . fromIntegral $ runGet (getWord32be) (LBS.fromStrict bs)
+
 getString :: Socket -> MaybeT IO BS.ByteString
 getString sock =
   do
-    bs <- MaybeT $ recv sock (4)
-    let length = fromIntegral $ runGet (getWord32be) (LBS.fromStrict bs)
+    length <- getInt sock
     MaybeT $ recv sock (4*length)
 
 getAbstractType :: Socket -> MaybeT IO RLAbstractType

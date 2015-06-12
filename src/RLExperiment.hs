@@ -102,3 +102,15 @@ stepEpisode sock =
         terminal <- getWord32be
         reward <- getFloat64be
         return (fromIntegral terminal, reward)
+
+numSteps :: Socket -> IO Int
+numSteps sock =
+  do
+    doCallWithNoParams sock kRLNumSteps
+    confirmState sock kRLNumSteps
+    x <- runMaybeT (getInt sock)
+    case x of
+      Nothing -> do
+        putStrLn "Error: Could not read number of steps from network"
+        exitWith (ExitFailure 1)
+      Just x' -> return x'

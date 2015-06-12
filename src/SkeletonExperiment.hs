@@ -54,10 +54,12 @@ doExperiments (sock, addr) =
       return (terminal > 0)
 
     putStrLn "\n----------Summary----------"
+    totalSteps <- numSteps sock
+    putStrLn $ "It ran for " ++ (show totalSteps) ++ " steps, total reward was: "
 
     cleanupExperiment sock
 
 loopUntil :: IO Bool -> IO ()
 loopUntil f = do
   x <- f
-  if x then loopUntil f else return ()
+  if x then return () else loopUntil f
