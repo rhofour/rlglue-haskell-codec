@@ -7,6 +7,7 @@ import Control.Monad
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Maybe
 import Data.Binary.Get
+import Data.Binary.IEEE754
 import Data.Binary.Put
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC
@@ -57,6 +58,9 @@ kIntSize = 4
 kDoubleSize = 8
 kCharSize = 1
 
+-- Datatypes
+data RLAbstractType = RLAbstractType [Int] [Double] BS.ByteString
+
 glueConnect :: forall r. ((Socket, SockAddr) -> IO r) -> IO r
 glueConnect func =
   do
@@ -100,6 +104,21 @@ getString sock =
     bs <- MaybeT $ recv sock (4)
     let length = fromIntegral $ runGet (getWord32be) (LBS.fromStrict bs)
     MaybeT $ recv sock (4*length)
+
+getAbstractType :: Socket -> MaybeT IO RLAbstractType
+getAbstractType sock =
+  do
+    bs <- MaybeT $ recv sock (3*4)
+    return $ runGet parseBytes (LBS.fromStrict bs)
+    where
+      parseBytes = do
+        numInts <- getWord32be
+        numDoubles <- getWord32be
+        numChars <- getWord32be
+        ints <- replicateM (fromIntegral numInts) getWord32be
+        doubles <- replicateM (fromIntegral numDoubles) getFloat64be
+        chars <- getByteString (fromIntegral numChars)
+        return (RLAbstractType (map fromIntegral ints) doubles chars)
 
 -- Other functions
 confirmState :: Socket -> Word32 -> IO ()

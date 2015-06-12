@@ -60,3 +60,9 @@ runEpisode sock stepLimit =
         putStrLn "Error: Could not read episode status from network"
         exitWith (ExitFailure 1)
       Just x -> return $ fromIntegral $ runGet getWord32be (LBS.fromStrict x)
+
+startEpisode :: Socket -> IO ()
+startEpisode sock =
+  do
+    doCallWithNoParams sock kRLStart
+    confirmState sock kRLStart
