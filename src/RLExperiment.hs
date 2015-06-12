@@ -7,6 +7,7 @@ import Data.Binary.Put
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import Data.Version (showVersion)
+import Data.Word
 import Network.Simple.TCP
 import System.Exit
 
@@ -103,14 +104,17 @@ stepEpisode sock =
         reward <- getFloat64be
         return (fromIntegral terminal, reward)
 
-numSteps :: Socket -> IO Int
-numSteps sock =
+getNetworkValue :: Word32 -> (Socket -> MaybeT IO a) -> String -> Socket -> IO a
+getNetworkValue byte  f errMsg sock =
   do
-    doCallWithNoParams sock kRLNumSteps
-    confirmState sock kRLNumSteps
-    x <- runMaybeT (getInt sock)
+    doCallWithNoParams sock byte
+    confirmState sock byte
+    x <- runMaybeT (f sock)
     case x of
       Nothing -> do
-        putStrLn "Error: Could not read number of steps from network"
+        putStrLn errMsg
         exitWith (ExitFailure 1)
       Just x' -> return x'
+
+numSteps :: Socket -> IO Int
+numSteps = getNetworkValue kRLNumSteps getInt "Error: Could not read number of steps from network."
