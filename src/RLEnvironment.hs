@@ -1,25 +1,59 @@
 module RLEnvironment where
 
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Maybe
+import Control.Monad.Trans.State.Lazy
+import Data.Binary.Get
 import Data.Binary.Put
+import qualified Data.ByteString.Lazy as LBS
 import Data.Version (showVersion)
 import Data.Word
 import Network.Simple.TCP
+import System.Exit
 
 import Paths_rlglue_haskell_codec (version)
 import RLNetwork
 
-data Environment = Environment
+data Environment a = Environment
+  { onEnvInit :: (a -> a)
+  }
 
-loadEnvironment ::  Environment -> IO ()
-loadEnvironment env =
+loadEnvironment ::  Environment a -> a -> IO ()
+loadEnvironment env initState =
   let 
     func (sock, addr) =
       do
+        -- Initial setup
         putStrLn ("RL-Glue Haskell Environment Codec (Version " ++ (showVersion version) ++ ")")
         let bs = runPut (putWord32be kEnvironmentConnection >> putWord32be (0 :: Word32))
         sendLazy sock bs
+
+        -- Run event loop
+        evalStateT (eventLoop sock) initState
   in
     glueConnect func
+
+eventLoop :: Socket -> StateT a IO ()
+eventLoop sock = do
+  x <- lift $ runMaybeT (getEnvState sock)
+  case x of
+    Nothing -> do
+      lift $ putStrLn "Error: Failed to receive state."
+      lift $ exitWith (ExitFailure 1)
+    Just (state, size) -> case state of
+      _ -> do
+        lift $ putStrLn $ "Error: Unknown state: " ++ (show state)
+        lift $ exitWith (ExitFailure 1)
+
+getEnvState :: Socket -> MaybeT IO (Word32, Word32)
+getEnvState sock = do
+  bs <- MaybeT $ recv sock (4*2)
+  return $ runGet (parseBytes) (LBS.fromStrict bs)
+  where
+    parseBytes = do
+      envState <- getWord32be
+      dataSize <- getWord32be
+      return (envState, dataSize)
 
 loopUntil :: IO Bool -> IO ()
 loopUntil f = do

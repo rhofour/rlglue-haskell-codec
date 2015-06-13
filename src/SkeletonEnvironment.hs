@@ -4,5 +4,5 @@ import RLEnvironment
 import RLNetwork
 
 main = do
-  loadEnvironment Environment
+  loadEnvironment (Environment id) ()
   return ()
