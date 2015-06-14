@@ -5,6 +5,7 @@ import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.State.Lazy
 import Data.Binary.Get
 import Data.Binary.Put
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import Data.Version (showVersion)
 import Data.Word
@@ -15,7 +16,7 @@ import Paths_rlglue_haskell_codec (version)
 import RLNetwork
 
 data Environment a = Environment
-  { onEnvInit :: (StateT a IO ())
+  { onEnvInit :: (StateT a IO BS.ByteString)
   , onEnvStart :: (StateT a IO ())
   , onEnvStep :: (StateT a IO ())
   , onEnvCleanup :: (StateT a IO ())
@@ -45,7 +46,13 @@ eventLoop env sock = do
       lift $ putStrLn "Error: Failed to receive state."
       lift $ exitWith (ExitFailure 1)
     Just (state, size) -> case state of
-      kEnvInit -> onEnvInit env
+      kEnvInit -> do
+        taskSpec <- onEnvInit env
+        let packedMsg = runPut (
+              putWord32be kEnvInit >>
+              putWord32be (fromIntegral (4 + BS.length taskSpec)) >>
+              putByteString taskSpec)
+        sendLazy sock packedMsg
       kEnvStart -> onEnvStart env
       kEnvStep -> onEnvStep env
       kEnvCleanup -> onEnvCleanup env
