@@ -47,5 +47,8 @@ onStep (Action (RLAbstractType (dir:_) _ _)) = do
 onCleanup :: StateT Int IO ()
 onCleanup = lift $ putStrLn "Cleaned up."
 
-onMsg :: StateT Int IO ()
-onMsg = lift $ putStrLn "Message received."
+onMsg :: BS.ByteString -> StateT Int IO BS.ByteString
+onMsg msg = do
+  return $ if msg == (BSC.pack "what is your name?")
+    then (BSC.pack "my name is skeleton_environment, Haskell edition!")
+    else (BSC.pack "I don't know how to respond to your message")

@@ -170,6 +170,11 @@ getString sock =
     length <- getInt sock
     MaybeT $ recv sock (4*length)
 
+putString :: BS.ByteString -> Put
+putString bs = do
+  putWord32be (fromIntegral (BS.length bs))
+  putByteString bs
+
 -- Other functions
 confirmState :: Socket -> Word32 -> IO ()
 confirmState sock exptState =

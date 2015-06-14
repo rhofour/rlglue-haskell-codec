@@ -20,7 +20,7 @@ data Environment a = Environment
   , onEnvStart :: (StateT a IO Observation)
   , onEnvStep :: (Action -> StateT a IO (Terminal, Reward, Observation))
   , onEnvCleanup :: (StateT a IO ())
-  , onEnvMessage :: (StateT a IO ())
+  , onEnvMessage :: (BS.ByteString -> StateT a IO BS.ByteString)
   }
 
 loadEnvironment ::  Environment a -> a -> IO ()
@@ -52,7 +52,7 @@ eventLoop env sock = do
           let packedMsg = runPut (
                 putWord32be kEnvInit >>
                 putWord32be (fromIntegral (4 + BS.length taskSpec)) >>
-                putByteString taskSpec)
+                putString taskSpec)
           sendLazy sock packedMsg
         kEnvStart -> do
           obs <- onEnvStart env
@@ -78,7 +78,22 @@ eventLoop env sock = do
                 putWord32be kEnvCleanup >>
                 putWord32be 0)
           sendLazy sock packedMsg
-        kEnvMessage -> onEnvMessage env
+        kEnvMessage -> do
+          x <- lift $ runMaybeT (getString sock)
+          case x of
+            Nothing -> lift $ do
+              putStrLn "Error: Could not read message"
+              exitWith (ExitFailure 1)
+            Just msg' -> do
+              resp <- onEnvMessage env msg'
+              let packedMsg = runPut (
+                    putWord32be kEnvMessage >>
+                    if BS.null resp
+                      then putWord32be 4 >> putWord32be 0
+                      else 
+                        putWord32be (fromIntegral $ 4 + (BS.length resp)) >>
+                        putString resp)
+              sendLazy sock packedMsg
         kRLTerm -> lift $ return ()
         _ -> do
           lift $ putStrLn $ "Error: Unknown state: " ++ (show state)
