@@ -45,43 +45,45 @@ eventLoop env sock = do
     Nothing -> do
       lift $ putStrLn "Error: Failed to receive state."
       lift $ exitWith (ExitFailure 1)
-    Just (state, size) -> case state of
-      kEnvInit -> do
-        taskSpec <- onEnvInit env
-        let packedMsg = runPut (
-              putWord32be kEnvInit >>
-              putWord32be (fromIntegral (4 + BS.length taskSpec)) >>
-              putByteString taskSpec)
-        sendLazy sock packedMsg
-      kEnvStart -> do
-        obs <- onEnvStart env
-        let size = sizeOfObs obs
-        let packedMsg = runPut (
-              putWord32be kEnvStart >>
-              putWord32be (fromIntegral size) >>
-              putObservation obs)
-        sendLazy sock packedMsg
-      kEnvStep -> do
-        x <- lift $ runMaybeT (fmap Action (getAbstractType sock))
-        case x of
-          Nothing -> lift $ do
-            putStrLn "Error: Could not read action over network"
-            exitWith (ExitFailure 1)
-          Just action -> do
-            terminalRewardObs <- onEnvStep env action
-            let packedMsg = runPut $ putTerminalRewardObs terminalRewardObs
-            sendLazy sock packedMsg
-      kEnvCleanup -> do
-        onEnvCleanup env
-        let packedMsg = runPut (
-              putWord32be kEnvCleanup >>
-              putWord32be 0)
-        sendLazy sock packedMsg
-      kEnvMessage -> onEnvMessage env
-      kRLTerm -> lift $ return ()
-      _ -> do
-        lift $ putStrLn $ "Error: Unknown state: " ++ (show state)
-        lift $ exitWith (ExitFailure 1)
+    Just (state, size) -> do
+      case state of
+        kEnvInit -> do
+          taskSpec <- onEnvInit env
+          let packedMsg = runPut (
+                putWord32be kEnvInit >>
+                putWord32be (fromIntegral (4 + BS.length taskSpec)) >>
+                putByteString taskSpec)
+          sendLazy sock packedMsg
+        kEnvStart -> do
+          obs <- onEnvStart env
+          let size = sizeOfObs obs
+          let packedMsg = runPut (
+                putWord32be kEnvStart >>
+                putWord32be (fromIntegral size) >>
+                putObservation obs)
+          sendLazy sock packedMsg
+        kEnvStep -> do
+          x <- lift $ runMaybeT (fmap Action (getAbstractType sock))
+          case x of
+            Nothing -> lift $ do
+              putStrLn "Error: Could not read action over network"
+              exitWith (ExitFailure 1)
+            Just action -> do
+              terminalRewardObs <- onEnvStep env action
+              let packedMsg = runPut $ putTerminalRewardObs terminalRewardObs
+              sendLazy sock packedMsg
+        kEnvCleanup -> do
+          onEnvCleanup env
+          let packedMsg = runPut (
+                putWord32be kEnvCleanup >>
+                putWord32be 0)
+          sendLazy sock packedMsg
+        kEnvMessage -> onEnvMessage env
+        kRLTerm -> lift $ return ()
+        _ -> do
+          lift $ putStrLn $ "Error: Unknown state: " ++ (show state)
+          lift $ exitWith (ExitFailure 1)
+      eventLoop env sock
 
 getEnvState :: Socket -> MaybeT IO (Word32, Word32)
 getEnvState sock = do
@@ -92,8 +94,3 @@ getEnvState sock = do
       envState <- getWord32be
       dataSize <- getWord32be
       return (envState, dataSize)
-
-loopUntil :: IO Bool -> IO ()
-loopUntil f = do
-  x <- f
-  if x then return () else loopUntil f
