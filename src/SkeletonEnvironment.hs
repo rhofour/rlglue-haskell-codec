@@ -17,8 +17,10 @@ onInit = do
   lift $ putStrLn "Initialized."
   lift $ return (BSC.pack "VERSION RL-Glue-3.0 PROBLEMTYPE episodic DISCOUNTFACTOR 1.0 OBSERVATIONS INTS (0 20)  ACTIONS INTS (0 1)  REWARDS (-1.0 1.0)  EXTRA skeleton_environment(Python) by Brian Tanner.")
 
-onStart :: StateT () IO ()
-onStart = lift $ putStrLn "Started."
+onStart :: StateT () IO Observation
+onStart = do
+  lift $ putStrLn "Started."
+  return (Observation (RLAbstractType [10] [] BS.empty))
 
 onStep :: StateT () IO ()
 onStep = lift $ putStrLn "Stepped."

@@ -17,7 +17,7 @@ import RLNetwork
 
 data Environment a = Environment
   { onEnvInit :: (StateT a IO BS.ByteString)
-  , onEnvStart :: (StateT a IO ())
+  , onEnvStart :: (StateT a IO Observation)
   , onEnvStep :: (StateT a IO ())
   , onEnvCleanup :: (StateT a IO ())
   , onEnvMessage :: (StateT a IO ())
@@ -53,7 +53,14 @@ eventLoop env sock = do
               putWord32be (fromIntegral (4 + BS.length taskSpec)) >>
               putByteString taskSpec)
         sendLazy sock packedMsg
-      kEnvStart -> onEnvStart env
+      kEnvStart -> do
+        obs <- onEnvStart env
+        let size = sizeOfObs obs
+        let packedMsg = runPut (
+              putWord32be kEnvStart >>
+              putWord32be (fromIntegral size) >>
+              putObservation obs)
+        sendLazy sock packedMsg
       kEnvStep -> onEnvStep env
       kEnvCleanup -> onEnvCleanup env
       kEnvMessage -> onEnvMessage env

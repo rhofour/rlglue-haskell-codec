@@ -65,6 +65,49 @@ newtype Observation = Observation RLAbstractType
 type Reward = Double
 type Terminal = Int
 
+-- Abstract type functions
+sizeOfType :: RLAbstractType -> Int
+sizeOfType (RLAbstractType ints doubles bs) =
+  4 * (length ints) + 8 * (length doubles) + BS.length bs
+
+sizeOfObs :: Observation -> Int
+sizeOfObs (Observation absType) = sizeOfType absType
+
+getAbstractType :: Socket -> MaybeT IO RLAbstractType
+getAbstractType sock =
+  do
+    bs1 <- MaybeT $ recv sock (3*4)
+    let (numInts, numDoubles, numChars) = runGet parseBytes1 (LBS.fromStrict bs1)
+    bs2 <- MaybeT $ recv sock (numInts*4 + numDoubles*8 + numChars)
+    return $ runGet (parseBytes2 numInts numDoubles numChars) (LBS.fromStrict bs2)
+    where
+      parseBytes1 = do
+        numInts <- getWord32be
+        numDoubles <- getWord32be
+        numChars <- getWord32be
+        return (fromIntegral numInts, fromIntegral numDoubles, fromIntegral numChars)
+      parseBytes2 numInts numDoubles numChars = do
+        ints <- replicateM (fromIntegral numInts) getWord32be
+        doubles <- replicateM (fromIntegral numDoubles) getFloat64be
+        chars <- getByteString (fromIntegral numChars)
+        return (RLAbstractType (map fromIntegral ints) doubles chars)
+
+putAbstractType :: RLAbstractType -> Put
+putAbstractType (RLAbstractType ints doubles bs) = do
+  let numInts = fromIntegral $ length ints
+  let numDoubles = fromIntegral $ length doubles
+  let numChars = fromIntegral $ BS.length bs
+  putWord32be numInts
+  putWord32be numDoubles
+  putWord32be numChars
+  mapM_ (putWord32be . fromIntegral) ints
+  mapM_ putFloat64be doubles
+  putByteString bs
+
+putObservation :: Observation -> Put
+putObservation (Observation absType) = putAbstractType absType
+
+-- Actually connect
 glueConnect :: forall r. ((Socket, SockAddr) -> IO r) -> IO r
 glueConnect func =
   do
@@ -120,25 +163,6 @@ getString sock =
   do
     length <- getInt sock
     MaybeT $ recv sock (4*length)
-
-getAbstractType :: Socket -> MaybeT IO RLAbstractType
-getAbstractType sock =
-  do
-    bs1 <- MaybeT $ recv sock (3*4)
-    let (numInts, numDoubles, numChars) = runGet parseBytes1 (LBS.fromStrict bs1)
-    bs2 <- MaybeT $ recv sock (numInts*4 + numDoubles*8 + numChars)
-    return $ runGet (parseBytes2 numInts numDoubles numChars) (LBS.fromStrict bs2)
-    where
-      parseBytes1 = do
-        numInts <- getWord32be
-        numDoubles <- getWord32be
-        numChars <- getWord32be
-        return (fromIntegral numInts, fromIntegral numDoubles, fromIntegral numChars)
-      parseBytes2 numInts numDoubles numChars = do
-        ints <- replicateM (fromIntegral numInts) getWord32be
-        doubles <- replicateM (fromIntegral numDoubles) getFloat64be
-        chars <- getByteString (fromIntegral numChars)
-        return (RLAbstractType (map fromIntegral ints) doubles chars)
 
 -- Other functions
 confirmState :: Socket -> Word32 -> IO ()
