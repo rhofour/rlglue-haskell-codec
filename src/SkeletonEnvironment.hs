@@ -16,7 +16,7 @@ main = do
 onInit :: StateT Int IO BS.ByteString
 onInit = do
   lift $ putStrLn "Initialized."
-  lift $ return (BSC.pack "VERSION RL-Glue-3.0 PROBLEMTYPE episodic DISCOUNTFACTOR 1.0 OBSERVATIONS INTS (0 20)  ACTIONS INTS (0 1)  REWARDS (-1.0 1.0)  EXTRA skeleton_environment(Python) by Brian Tanner.")
+  lift $ return (BSC.pack "VERSION RL-Glue-3.0 PROBLEMTYPE episodic DISCOUNTFACTOR 1.0 OBSERVATIONS INTS (0 20)  ACTIONS INTS (0 1)  REWARDS (-1.0 1.0)  EXTRA skeleton_environment(Haskell) by Richard Hofer.")
 
 onStart :: StateT Int IO Observation
 onStart = do
