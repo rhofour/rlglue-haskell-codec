@@ -16,6 +16,10 @@ import RLNetwork
 
 data Environment a = Environment
   { onEnvInit :: (StateT a IO ())
+  , onEnvStart :: (StateT a IO ())
+  , onEnvStep :: (StateT a IO ())
+  , onEnvCleanup :: (StateT a IO ())
+  , onEnvMessage :: (StateT a IO ())
   }
 
 loadEnvironment ::  Environment a -> a -> IO ()
@@ -42,6 +46,10 @@ eventLoop env sock = do
       lift $ exitWith (ExitFailure 1)
     Just (state, size) -> case state of
       kEnvInit -> onEnvInit env
+      kEnvStart -> onEnvStart env
+      kEnvStep -> onEnvStep env
+      kEnvCleanup -> onEnvCleanup env
+      kEnvMessage -> onEnvMessage env
       kRLTerm -> lift $ return ()
       _ -> do
         lift $ putStrLn $ "Error: Unknown state: " ++ (show state)
