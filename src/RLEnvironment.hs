@@ -18,7 +18,7 @@ import RLNetwork
 data Environment a = Environment
   { onEnvInit :: (StateT a IO BS.ByteString)
   , onEnvStart :: (StateT a IO Observation)
-  , onEnvStep :: (StateT a IO ())
+  , onEnvStep :: (Action -> StateT a IO (Terminal, Reward, Observation))
   , onEnvCleanup :: (StateT a IO ())
   , onEnvMessage :: (StateT a IO ())
   }
@@ -61,8 +61,22 @@ eventLoop env sock = do
               putWord32be (fromIntegral size) >>
               putObservation obs)
         sendLazy sock packedMsg
-      kEnvStep -> onEnvStep env
-      kEnvCleanup -> onEnvCleanup env
+      kEnvStep -> do
+        x <- lift $ runMaybeT (fmap Action (getAbstractType sock))
+        case x of
+          Nothing -> lift $ do
+            putStrLn "Error: Could not read action over network"
+            exitWith (ExitFailure 1)
+          Just action -> do
+            terminalRewardObs <- onEnvStep env action
+            let packedMsg = runPut $ putTerminalRewardObs terminalRewardObs
+            sendLazy sock packedMsg
+      kEnvCleanup -> do
+        onEnvCleanup env
+        let packedMsg = runPut (
+              putWord32be kEnvCleanup >>
+              putWord32be 0)
+        sendLazy sock packedMsg
       kEnvMessage -> onEnvMessage env
       kRLTerm -> lift $ return ()
       _ -> do

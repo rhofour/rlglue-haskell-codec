@@ -107,6 +107,12 @@ putAbstractType (RLAbstractType ints doubles bs) = do
 putObservation :: Observation -> Put
 putObservation (Observation absType) = putAbstractType absType
 
+putTerminalRewardObs :: (Terminal, Reward, Observation) -> Put
+putTerminalRewardObs (terminal, reward, Observation absType) = do
+  putWord32be (fromIntegral terminal)
+  putFloat64be reward
+  putAbstractType absType
+
 -- Actually connect
 glueConnect :: forall r. ((Socket, SockAddr) -> IO r) -> IO r
 glueConnect func =
