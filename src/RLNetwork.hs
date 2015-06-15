@@ -68,10 +68,14 @@ type Terminal = Int
 -- Abstract type functions
 sizeOfType :: RLAbstractType -> Int
 sizeOfType (RLAbstractType ints doubles bs) =
-  4 * (length ints) + 8 * (length doubles) + BS.length bs
+  kIntSize * (3 + length ints) + kDoubleSize * (length doubles) + kCharSize * (BS.length bs)
 
 sizeOfObs :: Observation -> Int
 sizeOfObs (Observation absType) = sizeOfType absType
+
+sizeOfRewardObs :: (Terminal, Reward, Observation) -> Int
+sizeOfRewardObs (_, _, obs) =
+  kIntSize + kDoubleSize + sizeOfObs obs
 
 getAbstractType :: Socket -> MaybeT IO RLAbstractType
 getAbstractType sock =

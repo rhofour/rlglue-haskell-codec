@@ -80,7 +80,11 @@ handleState sock env state
         exitWith (ExitFailure 1)
       Just action -> do
         terminalRewardObs <- onEnvStep env action
-        let packedMsg = runPut $ putTerminalRewardObs terminalRewardObs
+        let size = sizeOfRewardObs terminalRewardObs
+        let packedMsg = runPut (
+              putWord32be kEnvStep >>
+              putWord32be (fromIntegral size) >>
+              putTerminalRewardObs terminalRewardObs)
         sendLazy sock packedMsg
   | state == kEnvCleanup = do
     onEnvCleanup env
