@@ -67,6 +67,16 @@ type Reward = Double
 type Terminal = Int
 
 -- Abstract type functions
+orDie :: (a -> MaybeT IO c) -> String -> (a -> IO c)
+orDie f err =
+  \x -> do
+    maybeY <- runMaybeT (f x)
+    case maybeY of
+      Nothing -> do
+        putStrLn err
+        exitWith (ExitFailure 1)
+      Just y -> return y
+
 sizeOfType :: RLAbstractType -> Int
 sizeOfType (RLAbstractType ints doubles bs) =
   kIntSize * (3 + length ints) + kDoubleSize * (length doubles) + kCharSize * (BS.length bs)
@@ -105,18 +115,11 @@ getObservation sock = do
   absType <- getAbstractType sock
   return $ Observation absType
 
-orDie :: (a -> MaybeT IO c) -> String -> (a -> IO c)
-orDie f err =
-  \x -> do
-    maybeY <- runMaybeT (f x)
-    case maybeY of
-      Nothing -> do
-        putStrLn err
-        exitWith (ExitFailure 1)
-      Just y -> return y
-
 getObservationOrDie :: Socket -> IO Observation
 getObservationOrDie = orDie getObservation "Error: Could not get observation"
+
+getRewardOrDie :: Socket -> IO Reward
+getRewardOrDie = orDie getDouble "Error: Could not get reward"
 
 getRewardObservation :: Socket -> MaybeT IO (Reward, Observation)
 getRewardObservation sock = do

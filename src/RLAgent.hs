@@ -80,6 +80,13 @@ handleState sock agent state
           putWord32be (fromIntegral size) >>
           putAction action)
     sendLazy sock packedMsg
+  | state == kAgentEnd = do
+    reward <- lift $ getRewardOrDie sock
+    onAgentEnd agent reward
+    let packedMsg = runPut (
+          putWord32be kAgentEnd >>
+          putWord32be 0)
+    sendLazy sock packedMsg
   | state == kAgentCleanup = do
     onAgentCleanup agent
     let packedMsg = runPut (

@@ -5,6 +5,7 @@ import Control.Monad.Trans.State.Lazy
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC
 import System.Exit
+import System.Random
 
 import RLAgent
 import RLNetwork
@@ -17,10 +18,14 @@ onInit :: BS.ByteString -> StateT () IO ()
 onInit taskSpec = return ()
 
 onStart :: Observation -> StateT () IO Action
-onStart obs = return (Action $ RLAbstractType [] [] BS.empty)
+onStart obs = do
+  dir <- lift $ getStdRandom (randomR (0,1))
+  return (Action $ RLAbstractType [dir] [] BS.empty)
 
 onStep :: (Reward, Observation) -> StateT () IO Action
-onStep (reward, obs) = return (Action $ RLAbstractType [] [] BS.empty)
+onStep (reward, obs) = do
+  dir <- lift $ getStdRandom (randomR (0,1))
+  return (Action $ RLAbstractType [dir] [] BS.empty)
 
 onEnd :: Reward -> StateT () IO ()
 onEnd reward = return ()
