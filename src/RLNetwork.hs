@@ -175,6 +175,15 @@ getString sock =
     length <- getInt sock
     MaybeT $ recv sock (4*length)
 
+getStringOrDie :: Socket -> String -> IO BS.ByteString
+getStringOrDie sock err = do
+  maybeStr <- runMaybeT (getString sock)
+  case maybeStr of
+    Nothing -> do
+      putStrLn err
+      exitWith (ExitFailure 1)
+    Just str -> return str
+
 putString :: BS.ByteString -> Put
 putString bs = do
   putWord32be (fromIntegral (BS.length bs))
