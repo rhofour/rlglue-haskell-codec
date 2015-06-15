@@ -25,7 +25,7 @@ onStart = do
 
 onStep :: Action -> StateT Int IO (Terminal, Reward, Observation)
 onStep (Action (RLAbstractType (dir:_) _ _)) = do
-  lift $ putStrLn "Steping."
+  lift $ putStrLn "Stepping."
   case dir of
     0 -> modify (subtract 1)
     1 -> modify (+1)
@@ -49,6 +49,7 @@ onCleanup = lift $ putStrLn "Cleaned up."
 
 onMsg :: BS.ByteString -> StateT Int IO BS.ByteString
 onMsg msg = do
+  lift $ putStrLn $ "Received message: " ++ (show msg)
   return $ if msg == (BSC.pack "what is your name?")
     then (BSC.pack "my name is skeleton_environment, Haskell edition!")
     else (BSC.pack "I don't know how to respond to your message")
