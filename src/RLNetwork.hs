@@ -60,8 +60,9 @@ kCharSize = 1
 
 -- Datatypes
 data RLAbstractType = RLAbstractType [Int] [Double] BS.ByteString
-newtype Action = Action RLAbstractType
-newtype Observation = Observation RLAbstractType
+  deriving Show
+newtype Action = Action RLAbstractType deriving Show
+newtype Observation = Observation RLAbstractType deriving Show
 type Reward = Double
 type Terminal = Int
 

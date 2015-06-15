@@ -49,9 +49,7 @@ eventLoop env sock = do
       if state == kRLTerm
         then return ()
         else do
-          lift $ putStrLn "Starting case statement"
           handleState sock env state
-          lift $ putStrLn "Ending case statement"
           eventLoop env sock
 
 handleState :: Socket -> Environment a -> Word32 -> StateT a IO ()
@@ -66,7 +64,6 @@ handleState sock env state
   | state == kEnvStart = do
     obs <- onEnvStart env
     let size = sizeOfObs obs
-    lift $ putStrLn $ "Sending observation of size " ++ (show size)
     let packedMsg = runPut (
           putWord32be kEnvStart >>
           putWord32be (fromIntegral size) >>

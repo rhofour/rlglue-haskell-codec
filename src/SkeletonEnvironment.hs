@@ -15,17 +15,15 @@ main = do
 
 onInit :: StateT Int IO BS.ByteString
 onInit = do
-  lift $ putStrLn "Initialized."
   lift $ return (BSC.pack "VERSION RL-Glue-3.0 PROBLEMTYPE episodic DISCOUNTFACTOR 1.0 OBSERVATIONS INTS (0 20)  ACTIONS INTS (0 1)  REWARDS (-1.0 1.0)  EXTRA skeleton_environment(Haskell) by Richard Hofer.")
 
 onStart :: StateT Int IO Observation
 onStart = do
-  lift $ putStrLn "Started."
+  put 10
   return (Observation (RLAbstractType [10] [] BS.empty))
 
 onStep :: Action -> StateT Int IO (Terminal, Reward, Observation)
 onStep (Action (RLAbstractType (dir:_) _ _)) = do
-  lift $ putStrLn "Stepping."
   case dir of
     0 -> modify (subtract 1)
     1 -> modify (+1)
@@ -41,15 +39,14 @@ onStep (Action (RLAbstractType (dir:_) _ _)) = do
         return (1, -1, Observation (RLAbstractType [0] [] BS.empty))
       | x >= 20 = do
         put 20
-        return (1, 1, Observation (RLAbstractType [0] [] BS.empty))
+        return (1, 1, Observation (RLAbstractType [20] [] BS.empty))
       | otherwise = return (0, 0, Observation (RLAbstractType [x] [] BS.empty))
 
 onCleanup :: StateT Int IO ()
-onCleanup = lift $ putStrLn "Cleaned up."
+onCleanup = return ()
 
 onMsg :: BS.ByteString -> StateT Int IO BS.ByteString
 onMsg msg = do
-  lift $ putStrLn $ "Received message: " ++ (show msg)
   return $ if msg == (BSC.pack "what is your name?")
     then (BSC.pack "my name is skeleton_environment, Haskell edition!")
     else (BSC.pack "I don't know how to respond to your message")
