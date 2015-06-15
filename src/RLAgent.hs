@@ -56,56 +56,47 @@ eventLoop agent sock = do
 handleState :: Socket -> Agent a -> Word32 -> StateT a IO ()
 handleState sock agent state
   | state == kAgentInit = do
-    taskSpec <- lift $ getStringOrDie sock "Error: Could not get task spec"
+    taskSpec <- lift $ getStringOrDie "Error: Could not get task spec" sock
     onAgentInit agent taskSpec
     let packedMsg = runPut (
           putWord32be kAgentInit >>
           putWord32be 0)
     sendLazy sock packedMsg
-  -- | state == kAgentStart = do
-  --   obs <- onAgentStart env
-  --   let size = sizeOfObs obs
-  --   let packedMsg = runPut (
-  --         putWord32be kAgentStart >>
-  --         putWord32be (fromIntegral size) >>
-  --         putObservation obs)
-  --   sendLazy sock packedMsg
-  -- | state == kAgentStep = do
-  --   x <- lift $ runMaybeT (fmap Action (getAbstractType sock))
-  --   case x of
-  --     Nothing -> lift $ do
-  --       putStrLn "Error: Could not read action over network"
-  --       exitWith (ExitFailure 1)
-  --     Just action -> do
-  --       terminalRewardObs <- onAgentStep env action
-  --       let size = sizeOfRewardObs terminalRewardObs
-  --       let packedMsg = runPut (
-  --             putWord32be kAgentStep >>
-  --             putWord32be (fromIntegral size) >>
-  --             putTerminalRewardObs terminalRewardObs)
-  --       sendLazy sock packedMsg
-  -- | state == kAgentCleanup = do
-  --   onAgentCleanup env
-  --   let packedMsg = runPut (
-  --         putWord32be kAgentCleanup >>
-  --         putWord32be 0)
-  --   sendLazy sock packedMsg
-  -- | state == kAgentMessage = do
-  --   x <- lift $ runMaybeT (getString sock)
-  --   case x of
-  --     Nothing -> lift $ do
-  --       putStrLn "Error: Could not read message"
-  --       exitWith (ExitFailure 1)
-  --     Just msg' -> do
-  --       resp <- onAgentMessage env msg'
-  --       let packedMsg = runPut (
-  --             putWord32be kAgentMessage >>
-  --             if BS.null resp
-  --               then putWord32be 4 >> putWord32be 0
-  --               else 
-  --                 putWord32be (fromIntegral $ 4 + (BS.length resp)) >>
-  --                 putString resp)
-  --       sendLazy sock packedMsg
+  | state == kAgentStart = do
+    obs <- lift $ getObservationOrDie sock
+    action <- onAgentStart agent obs
+    let size = sizeOfAction action
+    let packedMsg = runPut (
+          putWord32be kAgentStart >>
+          putWord32be (fromIntegral size) >>
+          putAction action)
+    sendLazy sock packedMsg
+  | state == kAgentStep = do
+    rewardObs <- lift $ getRewardObservationOrDie sock
+    action <- onAgentStep agent rewardObs
+    let size = sizeOfAction action
+    let packedMsg = runPut (
+          putWord32be kAgentStep >>
+          putWord32be (fromIntegral size) >>
+          putAction action)
+    sendLazy sock packedMsg
+  | state == kAgentCleanup = do
+    onAgentCleanup agent
+    let packedMsg = runPut (
+          putWord32be kAgentCleanup >>
+          putWord32be 0)
+    sendLazy sock packedMsg
+  | state == kAgentMessage = do
+    msg <- lift $ getStringOrDie "Error: Could not read message" sock
+    resp <- onAgentMessage agent msg
+    let packedMsg = runPut (
+          putWord32be kAgentMessage >>
+          if BS.null resp
+            then putWord32be 4 >> putWord32be 0
+            else 
+              putWord32be (fromIntegral $ 4 + (BS.length resp)) >>
+              putString resp)
+    sendLazy sock packedMsg
   | state == kRLTerm = lift $ return ()
   | otherwise  = do
     lift $ putStrLn $ "Error: Unknown state: " ++ (show state)

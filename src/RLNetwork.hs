@@ -74,6 +74,9 @@ sizeOfType (RLAbstractType ints doubles bs) =
 sizeOfObs :: Observation -> Int
 sizeOfObs (Observation absType) = sizeOfType absType
 
+sizeOfAction :: Action -> Int
+sizeOfAction (Action absType) = sizeOfType absType
+
 sizeOfRewardObs :: (Terminal, Reward, Observation) -> Int
 sizeOfRewardObs (_, _, obs) =
   kIntSize + kDoubleSize + sizeOfObs obs
@@ -97,6 +100,33 @@ getAbstractType sock =
         chars <- getByteString (fromIntegral numChars)
         return (RLAbstractType (map fromIntegral ints) doubles chars)
 
+getObservation :: Socket -> MaybeT IO Observation
+getObservation sock = do
+  absType <- getAbstractType sock
+  return $ Observation absType
+
+orDie :: (a -> MaybeT IO c) -> String -> (a -> IO c)
+orDie f err =
+  \x -> do
+    maybeY <- runMaybeT (f x)
+    case maybeY of
+      Nothing -> do
+        putStrLn err
+        exitWith (ExitFailure 1)
+      Just y -> return y
+
+getObservationOrDie :: Socket -> IO Observation
+getObservationOrDie = orDie getObservation "Error: Could not get observation"
+
+getRewardObservation :: Socket -> MaybeT IO (Reward, Observation)
+getRewardObservation sock = do
+  reward <- getDouble sock
+  obs <- getObservation sock
+  return (reward, obs)
+
+getRewardObservationOrDie :: Socket -> IO (Reward, Observation)
+getRewardObservationOrDie = orDie getRewardObservation "Error: Could not get reward and observation"
+
 putAbstractType :: RLAbstractType -> Put
 putAbstractType (RLAbstractType ints doubles bs) = do
   let numInts = fromIntegral $ length ints
@@ -111,6 +141,9 @@ putAbstractType (RLAbstractType ints doubles bs) = do
 
 putObservation :: Observation -> Put
 putObservation (Observation absType) = putAbstractType absType
+
+putAction :: Action -> Put
+putAction (Action absType) = putAbstractType absType
 
 putTerminalRewardObs :: (Terminal, Reward, Observation) -> Put
 putTerminalRewardObs (terminal, reward, Observation absType) = do
@@ -175,14 +208,8 @@ getString sock =
     length <- getInt sock
     MaybeT $ recv sock (4*length)
 
-getStringOrDie :: Socket -> String -> IO BS.ByteString
-getStringOrDie sock err = do
-  maybeStr <- runMaybeT (getString sock)
-  case maybeStr of
-    Nothing -> do
-      putStrLn err
-      exitWith (ExitFailure 1)
-    Just str -> return str
+getStringOrDie :: String -> Socket -> IO BS.ByteString
+getStringOrDie err = orDie getString err
 
 putString :: BS.ByteString -> Put
 putString bs = do
