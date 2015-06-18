@@ -16,11 +16,11 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     RLNetwork, RLExperiment, RLEnvironment, RLAgent
+  exposed-modules:     RLNetwork, RLExperiment, RLEnvironment, RLAgent, RLTaskSpec
   -- other-modules:       
   -- other-extensions:    
   build-depends:       base >=4.7 && <4.8, network-simple, transformers, exceptions, binary, bytestring,
-                       data-binary-ieee754
+                       data-binary-ieee754, parsec
   hs-source-dirs:      src
   default-language:    Haskell2010
 
