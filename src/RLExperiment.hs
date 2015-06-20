@@ -1,4 +1,7 @@
-module RLExperiment where
+module RLExperiment (
+  runExperiment, initExperiment, cleanupExperiment, runEpisode, startEpisode,
+  stepEpisode, getNumSteps, getNumEpisodes, getReturn
+  ) where
 
 import Control.Monad.Trans.Maybe
 import Data.Binary.Get

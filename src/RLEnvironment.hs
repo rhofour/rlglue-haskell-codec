@@ -1,4 +1,6 @@
-module RLEnvironment where
+module RLEnvironment (
+  Environment(Environment), loadEnvironment
+  ) where
 
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Maybe

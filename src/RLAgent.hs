@@ -1,4 +1,6 @@
-module RLAgent where
+module RLAgent (
+  Agent(Agent), loadAgent
+  ) where
 
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Maybe
