@@ -14,10 +14,11 @@ data ProblemType = Episodic | Continuing | OtherProblemType String
 
 type DiscountFactor = Double
 
-data ObservationType = ObservationType IntObsType DoubleObsType
+data ObservationType = ObservationType IntObsType DoubleObsType CharObsType
   deriving (Show)
 type IntObsType = [ObsBounds Int]
 type DoubleObsType = [ObsBounds Double]
+type CharObsType = Int
 type ObsBounds a = (LowBound a, UpBound a)
 data LowBound a = LowBound a | NegInf | LBUnspec
   deriving (Show)
@@ -65,7 +66,8 @@ parseObservationType = do
   spaces
   intObsType <- parseIntObsType
   doubleObsType <- parseDoubleObsType
-  return $ ObservationType intObsType doubleObsType
+  charObsType <- parseCharObsType
+  return $ ObservationType intObsType doubleObsType charObsType
 
 parseRepeatable :: Parsec BS.ByteString () a -> Parsec BS.ByteString () [a]
 parseRepeatable parser = do
@@ -121,3 +123,9 @@ parseUB =
   (liftM (UpBound . read) $ many1 digit) <|> 
   (string "POSINF" >> return PosInf) <|>
   (string "UNSPEC" >> return UBUnspec)
+
+parseCharObsType :: Parsec BS.ByteString () CharObsType
+parseCharObsType = (try $ do
+  string "CHARCOUNT"
+  spaces
+  liftM read (many1 digit)) <|> return 0
