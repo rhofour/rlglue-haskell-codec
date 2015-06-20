@@ -6,7 +6,7 @@ import Text.Parsec
 import Text.Parsec.ByteString
 
 -- Datatype definitions
-data TaskSpec = TaskSpec ProblemType DiscountFactor ObservationType
+data TaskSpec = TaskSpec ProblemType DiscountFactor AbsDataType AbsDataType RewardBounds String
   deriving (Show)
 
 data ProblemType = Episodic | Continuing | OtherProblemType String
@@ -14,16 +14,18 @@ data ProblemType = Episodic | Continuing | OtherProblemType String
 
 type DiscountFactor = Double
 
-data ObservationType = ObservationType IntObsType DoubleObsType CharObsType
+data AbsDataType = AbsDataType IntsBounds DoublesBounds NumChars
   deriving (Show)
-type IntObsType = [ObsBounds Int]
-type DoubleObsType = [ObsBounds Double]
-type CharObsType = Int
-type ObsBounds a = (LowBound a, UpBound a)
+type IntsBounds = [DataBounds Int]
+type DoublesBounds = [DataBounds Double]
+type NumChars = Int
+type DataBounds a = (LowBound a, UpBound a)
 data LowBound a = LowBound a | NegInf | LBUnspec
   deriving (Show)
 data UpBound a = UpBound a | PosInf | UBUnspec
   deriving (Show)
+
+type RewardBounds = DataBounds Double
 
 -- Parsing functions
 toTaskSpec :: BS.ByteString -> Either ParseError TaskSpec
@@ -36,8 +38,14 @@ parseTaskSpec = do
   spaces
   discountFactor <- parseDiscountFactor
   spaces
-  obsType <- parseObservationType
-  return $ TaskSpec probType discountFactor obsType
+  obs <- parseObservations
+  spaces
+  act <- parseActions
+  spaces
+  reward <- parseRewards
+  spaces
+  extra <- parseExtra
+  return $ TaskSpec probType discountFactor obs act reward extra
 
 parseVersion = do
   -- We currently only parse version 3.0
@@ -60,52 +68,74 @@ parseDiscountFactor = do
   numStr <- many1 (digit <|> char '.')
   return $ read numStr
 
-parseObservationType :: Parsec BS.ByteString () ObservationType
-parseObservationType = do
+parseObservations = do
   string "OBSERVATIONS"
   spaces
-  intObsType <- parseIntObsType
-  doubleObsType <- parseDoubleObsType
-  charObsType <- parseCharObsType
-  return $ ObservationType intObsType doubleObsType charObsType
+  parseAbsDataType
+
+parseActions = do
+  string "ACTIONS"
+  spaces
+  parseAbsDataType
+
+parseRewards = do
+  string "REWARDS"
+  spaces
+  char '('
+  lower <- parseLB
+  spaces
+  upper <- parseUB
+  char ')'
+  return (lower, upper)
+
+parseExtra = do
+  string "EXTRA"
+  spaces
+  many anyChar
+
+parseAbsDataType :: Parsec BS.ByteString () AbsDataType
+parseAbsDataType = do
+  intObsType <- parseIntsBounds
+  doubleObsType <- parseDoublesBounds
+  charObsType <- parseNumChars
+  return $ AbsDataType intObsType doubleObsType charObsType
 
 parseRepeatable :: Parsec BS.ByteString () a -> Parsec BS.ByteString () [a]
-parseRepeatable parser = do
+parseRepeatable parser =
   try (do
     times <- liftM read $ many1 digit
     spaces
     x <- parser
     return $ replicate times x)
-  <|> liftM (\x -> [x]) parser
+  <|> liftM (: []) parser
 
-parseIntObsType :: Parsec BS.ByteString () IntObsType
-parseIntObsType = (try $ do
+parseIntsBounds :: Parsec BS.ByteString () IntsBounds
+parseIntsBounds = try (do
   string "INTS"
-  spaces
-  xs <- many (do
-    x <- parseObsTypeTuple
-    spaces
-    return x)
-  return $ concat xs) <|> return []
+  parseInnerBounds) <|> return []
 
-parseDoubleObsType :: Parsec BS.ByteString () DoubleObsType
-parseDoubleObsType = (try $ do
+parseDoublesBounds :: Parsec BS.ByteString () DoublesBounds
+parseDoublesBounds = try (do
   string "DOUBLES"
+  parseInnerBounds) <|> return []
+
+parseInnerBounds :: Read a => Parsec BS.ByteString () [DataBounds a]
+parseInnerBounds = do
   spaces
   xs <- many (do
-    x <- parseObsTypeTuple
+    x <- parseAbsDataTypeTuple
     spaces
     return x)
-  return $ concat xs) <|> return []
+  return $ concat xs
 
-parseObsTypeTuple :: Read a => Parsec BS.ByteString () [ObsBounds a]
-parseObsTypeTuple = do
+parseAbsDataTypeTuple :: Read a => Parsec BS.ByteString () [DataBounds a]
+parseAbsDataTypeTuple = do
   char '('
   x <- parseRepeatable parseBoundsTuple
   char ')'
   return x
 
-parseBoundsTuple :: Read a => Parsec BS.ByteString () (ObsBounds a)
+parseBoundsTuple :: Read a => Parsec BS.ByteString () (DataBounds a)
 parseBoundsTuple = do
   lb <- parseLB
   spaces
@@ -114,18 +144,18 @@ parseBoundsTuple = do
 
 parseLB :: Read a => Parsec BS.ByteString () (LowBound a)
 parseLB = 
-  (liftM (LowBound . read) $ many1 digit) <|> 
+  liftM (LowBound . read) (many1 $ char '-' <|> char '.' <|> digit) <|> 
   (string "NEGINF" >> return NegInf) <|>
   (string "UNSPEC" >> return LBUnspec)
 
 parseUB :: Read a => Parsec BS.ByteString () (UpBound a)
 parseUB = 
-  (liftM (UpBound . read) $ many1 digit) <|> 
+  liftM (UpBound . read) (many1 $ char '-' <|> char '.' <|> digit) <|> 
   (string "POSINF" >> return PosInf) <|>
   (string "UNSPEC" >> return UBUnspec)
 
-parseCharObsType :: Parsec BS.ByteString () CharObsType
-parseCharObsType = (try $ do
+parseNumChars :: Parsec BS.ByteString () NumChars
+parseNumChars = try (do
   string "CHARCOUNT"
   spaces
   liftM read (many1 digit)) <|> return 0
