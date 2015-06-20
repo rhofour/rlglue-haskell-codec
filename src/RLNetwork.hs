@@ -1,6 +1,37 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module RLNetwork where
+module RLNetwork (
+  -- * Magic numbers
+  -- ** Connection types
+  kExperimentConnection, kAgentConnection, kEnvironmentConnection,
+  -- ** Agent
+  kAgentInit, kAgentStart, kAgentStep, kAgentEnd, kAgentCleanup, kAgentMessage,
+  -- ** Environment
+  kEnvInit, kEnvStart, kEnvStep, kEnvCleanup, kEnvMessage,
+  -- ** Experiment
+  kRLInit, kRLStart, kRLStep, kRLCleanup, kRLReturn, kRLNumSteps,
+  kRLNumEpisodes, kRLEpisode, kRLAgentMessage, kRLEnvMessage,
+  -- ** Other
+  kRLTerm,
+  -- * Other constants
+  kLocalHost, kDefaultPort, kRetryTimeout,
+  kDefaultBufferSize, kIntSize, kDoubleSize, kCharSize,
+  -- * Data types
+  RLAbstractType(RLAbstractType), Action(Action), Observation(Observation),
+  Reward, Terminal,
+  -- * sizeOf functions
+  sizeOfObs, sizeOfAction, sizeOfRewardObs,
+  -- * Get network objects
+  getObservation, getObservationOrDie, getAction, getRewardOrDie,
+  getRewardObservation, getRewardObservationOrDie,
+  getInt, getDouble, getString, getStringOrDie,
+  -- * Put network objects
+  putObservation, putAction, putTerminalRewardObs, putString,
+  -- * Network functions
+  glueConnect, doCallWithNoParams, confirmState,
+  sendAgentMessage, sendAgentMessageStr,
+  sendEnvMessage, sendEnvMessageStr
+  ) where
 
 import Control.Exception
 import Control.Monad
@@ -23,6 +54,7 @@ kExperimentConnection  = 1 :: Word32
 kAgentConnection       = 2 :: Word32
 kEnvironmentConnection = 3 :: Word32
 
+-- Agent
 kAgentInit      = 4 :: Word32
 kAgentStart     = 5 :: Word32
 kAgentStep      = 6 :: Word32
@@ -30,12 +62,14 @@ kAgentEnd       = 7 :: Word32
 kAgentCleanup   = 8 :: Word32
 kAgentMessage   = 10 :: Word32
 
+-- Environment
 kEnvInit        = 11 :: Word32
 kEnvStart       = 12 :: Word32
 kEnvStep        = 13 :: Word32
 kEnvCleanup     = 14 :: Word32
 kEnvMessage     = 19 :: Word32
 
+-- Experiment
 kRLInit         = 20 :: Word32
 kRLStart        = 21 :: Word32
 kRLStep         = 22 :: Word32
@@ -47,6 +81,7 @@ kRLEpisode      = 27 :: Word32
 kRLAgentMessage = 33 :: Word32
 kRLEnvMessage   = 34 :: Word32
 
+-- Other
 kRLTerm         = 35 :: Word32
 
 kLocalHost = "127.0.0.1"
@@ -58,7 +93,7 @@ kIntSize = 4
 kDoubleSize = 8
 kCharSize = 1
 
--- Datatypes
+-- Data types
 data RLAbstractType = RLAbstractType [Int] [Double] BS.ByteString
   deriving Show
 newtype Action = Action RLAbstractType deriving Show
@@ -117,6 +152,11 @@ getObservation sock = do
 
 getObservationOrDie :: Socket -> IO Observation
 getObservationOrDie = orDie getObservation "Error: Could not get observation"
+
+getAction :: Socket -> MaybeT IO Action
+getAction sock = do
+  absType <- getAbstractType sock
+  return $ Action absType
 
 getRewardOrDie :: Socket -> IO Reward
 getRewardOrDie = orDie getDouble "Error: Could not get reward"

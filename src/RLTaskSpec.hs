@@ -1,4 +1,13 @@
-module RLTaskSpec where
+module RLTaskSpec (
+  -- * Task Spec data types
+  TaskSpec(TaskSpec), ProblemType(Episodic, Continuing, OtherProblemType),
+  DiscountFactor, AbsDataType(AbsDataType), IntsBounds, DoublesBounds,
+  NumChars, DataBounds, RewardBounds,
+  -- ** Bounds
+  LowBound(LowBound, NegInf, LBUnspec), UpBound(UpBound, PosInf, UBUnspec),
+  -- * Parsing functions
+  toTaskSpec, parseTaskSpec
+  ) where
 
 import Control.Monad
 import qualified Data.ByteString as BS

@@ -67,10 +67,8 @@ startEpisode sock =
   do
     doCallWithNoParams sock kRLStart
     x <- runMaybeT (do
-      abs1 <- getAbstractType sock
-      let obs = Observation abs1 
-      abs2 <- getAbstractType sock
-      let act = Action $ abs2
+      obs <- getObservation sock
+      act <- getAction sock
       return (obs, act))
     case x of
       Nothing -> do
@@ -82,13 +80,15 @@ stepEpisode :: Socket -> IO (Reward, Observation, Action, Terminal)
 stepEpisode sock =
   do
     doCallWithNoParams sock kRLStep
+    let parseBytes = do
+          terminal <- getWord32be
+          reward <- getFloat64be
+          return (fromIntegral terminal, reward)
     x <- runMaybeT (do
       bs <- MaybeT $ recv sock (4+8)
       let (terminal, reward) = runGet parseBytes (LBS.fromStrict bs)
-      abs1 <- getAbstractType sock
-      let obs = Observation abs1 
-      abs2 <- getAbstractType sock
-      let act = Action $ abs2
+      obs <- getObservation sock
+      act <- getAction sock
       return (reward, obs, act, terminal))
     case x of
       Nothing -> do
@@ -96,10 +96,6 @@ stepEpisode sock =
         exitWith (ExitFailure 1)
       Just x' -> return x'
     where
-      parseBytes = do
-        terminal <- getWord32be
-        reward <- getFloat64be
-        return (fromIntegral terminal, reward)
 
 getNetworkValue :: Word32 -> (Socket -> MaybeT IO a) -> String -> Socket -> IO a
 getNetworkValue byte  f errMsg sock =

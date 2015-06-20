@@ -70,7 +70,7 @@ handleState sock env state
           putObservation obs)
     sendLazy sock packedMsg
   | state == kEnvStep = do
-    x <- lift $ runMaybeT (fmap Action (getAbstractType sock))
+    x <- lift $ runMaybeT (getAction sock)
     case x of
       Nothing -> lift $ do
         putStrLn "Error: Could not read action over network"
