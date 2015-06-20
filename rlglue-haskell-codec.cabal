@@ -4,7 +4,8 @@
 name:                rlglue-haskell-codec
 version:             0.2.0.0
 synopsis:            A Haskell codec for RL-Glue.
--- description:         
+description:         A codec to allow Haskell programs to interact with reinforcement learning
+                     programs using the RL_Glue protocol.
 license:             Apache-2.0
 license-file:        LICENSE
 author:              Richard Alex Hofer
@@ -14,6 +15,9 @@ category:            Codec
 build-type:          Simple
 -- extra-source-files:  
 cabal-version:       >=1.10
+source-repository head
+  type:     git
+  location: git://github.com/rhofour/rlglue-haskell-codec.git
 
 library
   exposed-modules:     RLNetwork, RLExperiment, RLEnvironment, RLAgent, RLTaskSpec
