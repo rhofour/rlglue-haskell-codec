@@ -1,5 +1,6 @@
 module Main where
 
+import Control.Monad (unless)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.State.Lazy
 import qualified Data.ByteString as BS
@@ -9,27 +10,26 @@ import Network.Simple.TCP
 import RL_Glue.Experiment
 import RL_Glue.Network
 
-main = do
-  runExperiment doExperiments
+main = runExperiment doExperiments
 
 doExperiments :: (Socket, SockAddr) -> IO ()
 doExperiments (sock, addr) =
   do
     taskSpec <- initExperiment sock
-    putStrLn ("Sent task spec: " ++ (show taskSpec))
+    putStrLn ("Sent task spec: " ++ show taskSpec)
 
     putStrLn "\n----------Sending some sample messages----------"
     resp <- sendAgentMessageStr sock "what is your name?"
-    putStrLn ("Agent responded to \"what is your name?\" with: " ++ (show resp))
+    putStrLn ("Agent responded to \"what is your name?\" with: " ++ show resp)
 
     resp <- sendAgentMessageStr sock "If at first you don't succeed; call it version 1.0"
-    putStrLn ("Agent responded to \"If at first you don't succeed; call it version 1.0?\" with: " ++ (show resp))
+    putStrLn ("Agent responded to \"If at first you don't succeed; call it version 1.0?\" with: " ++ show resp)
 
     resp <- sendEnvMessageStr sock "what is your name?"
-    putStrLn ("Environment responded to \"what is your name?\" with: " ++ (show resp))
+    putStrLn ("Environment responded to \"what is your name?\" with: " ++ show resp)
 
     resp <- sendEnvMessageStr sock "If at first you don't succeed; call it version 1.0"
-    putStrLn ("Environment responded to \"If at first you don't succeed; call it version 1.0?\" with: " ++ (show resp))
+    putStrLn ("Environment responded to \"If at first you don't succeed; call it version 1.0?\" with: " ++ show resp)
 
     putStrLn "\n----------Running a few episodes----------"
 
@@ -50,7 +50,7 @@ doExperiments (sock, addr) =
 
     -- Start an episode
     (Observation (RLAbstractType o _ _), Action (RLAbstractType a _ _)) <- startEpisode sock
-    putStrLn $ "First observation and action were: " ++ (show (head o)) ++ " and: " ++ (show (head a))
+    putStrLn $ "First observation and action were: " ++ show (head o) ++ " and: " ++ show (head a)
 
     -- Step until episode ends
     loopUntil $ do
@@ -60,7 +60,7 @@ doExperiments (sock, addr) =
     putStrLn "\n----------Summary----------"
     totalSteps <- getNumSteps sock
     totalReward <- getReturn sock
-    putStrLn $ "It ran for " ++ (show totalSteps) ++ " steps, total reward was: " ++ (show totalReward)
+    putStrLn $ "It ran for " ++ show totalSteps ++ " steps, total reward was: " ++ show totalReward
 
     cleanupExperiment sock
 
@@ -72,11 +72,11 @@ prettyRunEpisode sock steps =
     totalReward <- lift $ getReturn sock
 
     episodeNum <- get
-    lift $ putStrLn $ "Episode " ++ (show episodeNum) ++ "\t " ++ (show totalSteps) ++ " steps \t" ++
-      (show totalReward) ++ " total reward\t" ++ (show terminal) ++ " natural end"
+    lift $ putStrLn $ "Episode " ++ show episodeNum ++ "\t " ++ show totalSteps ++ " steps \t" ++
+      show totalReward ++ " total reward\t" ++ show terminal ++ " natural end"
     modify (+1)
 
 loopUntil :: IO Bool -> IO ()
 loopUntil f = do
   x <- f
-  if x then return () else loopUntil f
+  unless x (loopUntil f)

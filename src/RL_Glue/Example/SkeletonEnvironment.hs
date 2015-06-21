@@ -9,13 +9,11 @@ import System.Exit
 import RL_Glue.Environment
 import RL_Glue.Network
 
-main = do
-  loadEnvironment (Environment onInit onStart onStep onCleanup onMsg) 10
-  return ()
+main = loadEnvironment (Environment onInit onStart onStep onCleanup onMsg) 10
 
 onInit :: StateT Int IO BS.ByteString
-onInit = do
-  lift $ return (BSC.pack "VERSION RL-Glue-3.0 PROBLEMTYPE episodic DISCOUNTFACTOR 1.0 OBSERVATIONS INTS (0 20)  ACTIONS INTS (0 1)  REWARDS (-1.0 1.0)  EXTRA skeleton_environment(Haskell) by Richard Hofer.")
+onInit = 
+  lift $ return $ BSC.pack "VERSION RL-Glue-3.0 PROBLEMTYPE episodic DISCOUNTFACTOR 1.0 OBSERVATIONS INTS (0 20)  ACTIONS INTS (0 1)  REWARDS (-1.0 1.0)  EXTRA skeleton_environment(Haskell) by Richard Hofer."
 
 onStart :: StateT Int IO Observation
 onStart = do
@@ -46,7 +44,7 @@ onCleanup :: StateT Int IO ()
 onCleanup = return ()
 
 onMsg :: BS.ByteString -> StateT Int IO BS.ByteString
-onMsg msg = do
-  return $ if msg == (BSC.pack "what is your name?")
-    then (BSC.pack "my name is skeleton_environment, Haskell edition!")
-    else (BSC.pack "I don't know how to respond to your message")
+onMsg msg =
+  return $ BSC.pack $ if msg == BSC.pack "what is your name?"
+    then "my name is skeleton_environment, Haskell edition!"
+    else "I don't know how to respond to your message"

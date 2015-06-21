@@ -102,19 +102,18 @@ type Reward = Double
 type Terminal = Int
 
 -- Abstract type functions
-orDie :: (a -> MaybeT IO c) -> String -> (a -> IO c)
-orDie f err =
-  \x -> do
-    maybeY <- runMaybeT (f x)
-    case maybeY of
-      Nothing -> do
-        putStrLn err
-        exitWith (ExitFailure 1)
-      Just y -> return y
+orDie :: (a -> MaybeT IO c) -> String -> a -> IO c
+orDie f err x = do
+  maybeY <- runMaybeT (f x)
+  case maybeY of
+    Nothing -> do
+      putStrLn err
+      exitWith (ExitFailure 1)
+    Just y -> return y
 
 sizeOfType :: RLAbstractType -> Int
 sizeOfType (RLAbstractType ints doubles bs) =
-  kIntSize * (3 + length ints) + kDoubleSize * (length doubles) + kCharSize * (BS.length bs)
+  kIntSize * (3 + length ints) + kDoubleSize * length doubles + kCharSize * BS.length bs
 
 sizeOfObs :: Observation -> Int
 sizeOfObs (Observation absType) = sizeOfType absType
@@ -208,9 +207,9 @@ glueConnect func =
       (\_ -> return kDefaultPort)
     let func' :: (Socket, SockAddr) -> IO r
         func' (sock, addr) = do
-          putStrLn ("Connecting to " ++ (show addr) ++ " on port " ++ port ++ "...")
+          putStrLn ("Connecting to " ++ show addr ++ " on port " ++ port ++ "...")
           x <- func (sock, addr)
-          putStrLn ("Disconnecting from " ++ (show addr) ++ " on port " ++ port ++ "...")
+          putStrLn ("Disconnecting from " ++ show addr ++ " on port " ++ port ++ "...")
           return x
     connect host port func'
 
@@ -252,7 +251,7 @@ getString sock =
     MaybeT $ recv sock (4*length)
 
 getStringOrDie :: String -> Socket -> IO BS.ByteString
-getStringOrDie err = orDie getString err
+getStringOrDie = orDie getString
 
 putString :: BS.ByteString -> Put
 putString bs = do
@@ -268,9 +267,9 @@ confirmState sock exptState =
       Nothing -> do
         putStrLn "Failed to receive state. Exiting..."
         exitWith (ExitFailure 1)
-      Just (state, size) -> if state == exptState then return () else do
-        putStrLn $ "State " ++ (show state) ++ " doesn't match expected state " ++
-          (show exptState) ++ ". Exiting..."
+      Just (state, size) -> unless (state == exptState) $ do
+        putStrLn $ "State " ++ show state ++ " doesn't match expected state " ++
+          show exptState ++ ". Exiting..."
         exitWith (ExitFailure 1)
 
 sendMessage :: Word32 -> Socket -> BS.ByteString -> IO BS.ByteString

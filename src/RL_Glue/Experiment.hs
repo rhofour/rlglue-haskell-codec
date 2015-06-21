@@ -22,7 +22,7 @@ runExperiment func =
   let 
     func' (sock, addr) =
       do
-        putStrLn ("RL-Glue Haskell Experiment Codec (Version " ++ (showVersion version) ++ ")")
+        putStrLn ("RL-Glue Haskell Experiment Codec (Version " ++ showVersion version ++ ")")
         let bs = runPut (putWord32be kExperimentConnection >> putWord32be (0 :: Word32))
         sendLazy sock bs
 
@@ -43,9 +43,7 @@ initExperiment sock =
       Just x -> return x
 
 cleanupExperiment :: Socket -> IO ()
-cleanupExperiment sock =
-  do
-    doCallWithNoParams sock kRLCleanup
+cleanupExperiment sock = doCallWithNoParams sock kRLCleanup
 
 runEpisode :: Socket -> Int -> IO Int
 runEpisode sock stepLimit =
@@ -58,7 +56,7 @@ runEpisode sock stepLimit =
           putWord32be (fromIntegral stepLimit))
     sendLazy sock packedMsg
     confirmState sock kRLEpisode
-    respBs <- recv sock (4)
+    respBs <- recv sock 4
     case respBs of
       Nothing -> do
         putStrLn "Error: Could not read episode status from network"

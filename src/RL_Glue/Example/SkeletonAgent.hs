@@ -33,8 +33,8 @@ onEnd reward = return ()
 onCleanup :: (StateT () IO ())
 onCleanup = return ()
 
-onMessage :: (BS.ByteString -> StateT () IO BS.ByteString)
+onMessage :: BS.ByteString -> StateT () IO BS.ByteString
 onMessage msg =
-  return $ if msg == (BSC.pack "what is your name?")
-    then (BSC.pack "my name is skeleton_agent, Haskell edition!")
-    else (BSC.pack "I don't know how to respond to your message")
+  return $ BSC.pack $ if msg == BSC.pack "what is your name?"
+    then "my name is skeleton_agent, Haskell edition!"
+    else "I don't know how to respond to your message"

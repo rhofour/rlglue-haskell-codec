@@ -2,6 +2,7 @@ module RL_Glue.Environment (
   Environment(Environment), loadEnvironment
   ) where
 
+import Control.Monad (unless)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.State.Lazy
@@ -18,11 +19,11 @@ import Paths_rlglue (version)
 import RL_Glue.Network
 
 data Environment a = Environment
-  { onEnvInit :: (StateT a IO BS.ByteString)
-  , onEnvStart :: (StateT a IO Observation)
-  , onEnvStep :: (Action -> StateT a IO (Terminal, Reward, Observation))
-  , onEnvCleanup :: (StateT a IO ())
-  , onEnvMessage :: (BS.ByteString -> StateT a IO BS.ByteString)
+  { onEnvInit :: StateT a IO BS.ByteString
+  , onEnvStart :: StateT a IO Observation
+  , onEnvStep :: Action -> StateT a IO (Terminal, Reward, Observation)
+  , onEnvCleanup :: StateT a IO ()
+  , onEnvMessage :: BS.ByteString -> StateT a IO BS.ByteString
   }
 
 loadEnvironment ::  Environment a -> a -> IO ()
@@ -31,7 +32,7 @@ loadEnvironment env initState =
     func (sock, addr) =
       do
         -- Initial setup
-        putStrLn ("RL-Glue Haskell Environment Codec (Version " ++ (showVersion version) ++ ")")
+        putStrLn ("RL-Glue Haskell Environment Codec (Version " ++ showVersion version ++ ")")
         let bs = runPut (putWord32be kEnvironmentConnection >> putWord32be (0 :: Word32))
         sendLazy sock bs
 
@@ -47,12 +48,10 @@ eventLoop env sock = do
     Nothing -> do
       lift $ putStrLn "Error: Failed to receive state."
       lift $ exitWith (ExitFailure 1)
-    Just (state, size) -> do
-      if state == kRLTerm
-        then return ()
-        else do
-          handleState sock env state
-          eventLoop env sock
+    Just (state, size) ->
+      unless (state == kRLTerm) $ do
+        handleState sock env state
+        eventLoop env sock
 
 handleState :: Socket -> Environment a -> Word32 -> StateT a IO ()
 handleState sock env state
@@ -104,18 +103,18 @@ handleState sock env state
               if BS.null resp
                 then putWord32be 4 >> putWord32be 0
                 else 
-                  putWord32be (fromIntegral $ 4 + (BS.length resp)) >>
+                  putWord32be (fromIntegral $ 4 + BS.length resp) >>
                   putString resp)
         sendLazy sock packedMsg
   | state == kRLTerm = lift $ return ()
   | otherwise  = do
-    lift $ putStrLn $ "Error: Unknown state: " ++ (show state)
+    lift $ putStrLn $ "Error: Unknown state: " ++ show state
     lift $ exitWith (ExitFailure 1)
 
 getEnvState :: Socket -> MaybeT IO (Word32, Word32)
 getEnvState sock = do
   bs <- MaybeT $ recv sock (4*2)
-  return $ runGet (parseBytes) (LBS.fromStrict bs)
+  return $ runGet parseBytes (LBS.fromStrict bs)
   where
     parseBytes = do
       envState <- getWord32be
