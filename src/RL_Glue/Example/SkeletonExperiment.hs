@@ -6,8 +6,8 @@ import qualified Data.ByteString as BS
 import Data.Binary.Put
 import Network.Simple.TCP
 
-import RLExperiment
-import RLNetwork
+import RL_Glue.Experiment
+import RL_Glue.Network
 
 main = do
   runExperiment doExperiments

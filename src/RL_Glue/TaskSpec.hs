@@ -1,4 +1,4 @@
-module RLTaskSpec (
+module RL_Glue.TaskSpec (
   -- * Task Spec data types
   TaskSpec(TaskSpec), ProblemType(Episodic, Continuing, OtherProblemType),
   DiscountFactor, AbsDataType(AbsDataType), IntsBounds, DoublesBounds,

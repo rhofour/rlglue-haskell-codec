@@ -1,6 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module RLNetwork (
+module RL_Glue.Network (
   -- * Magic numbers
   -- ** Connection types
   kExperimentConnection, kAgentConnection, kEnvironmentConnection,

@@ -7,8 +7,8 @@ import qualified Data.ByteString.Char8 as BSC
 import System.Exit
 import System.Random
 
-import RLAgent
-import RLNetwork
+import RL_Glue.Agent
+import RL_Glue.Network
 
 main = do
   loadAgent (Agent onInit onStart onStep onEnd onCleanup onMessage) ()

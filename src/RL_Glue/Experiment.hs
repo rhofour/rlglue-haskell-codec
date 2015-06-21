@@ -1,4 +1,4 @@
-module RLExperiment (
+module RL_Glue.Experiment (
   runExperiment, initExperiment, cleanupExperiment, runEpisode, startEpisode,
   stepEpisode, getNumSteps, getNumEpisodes, getReturn
   ) where
@@ -14,8 +14,8 @@ import Data.Word
 import Network.Simple.TCP
 import System.Exit
 
-import Paths_rlglue_haskell_codec (version)
-import RLNetwork
+import Paths_rlglue (version)
+import RL_Glue.Network
 
 runExperiment :: ((Socket, SockAddr) -> IO ()) -> IO ()
 runExperiment func =

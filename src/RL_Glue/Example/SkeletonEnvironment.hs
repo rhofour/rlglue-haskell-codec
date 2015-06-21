@@ -6,8 +6,8 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC
 import System.Exit
 
-import RLEnvironment
-import RLNetwork
+import RL_Glue.Environment
+import RL_Glue.Network
 
 main = do
   loadEnvironment (Environment onInit onStart onStep onCleanup onMsg) 10

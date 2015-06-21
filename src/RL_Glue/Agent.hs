@@ -1,4 +1,4 @@
-module RLAgent (
+module RL_Glue.Agent (
   Agent(Agent), loadAgent
   ) where
 
@@ -14,8 +14,8 @@ import Data.Word
 import Network.Simple.TCP
 import System.Exit
 
-import Paths_rlglue_haskell_codec (version)
-import RLNetwork
+import Paths_rlglue (version)
+import RL_Glue.Network
 
 data Agent a = Agent
   { onAgentInit :: BS.ByteString -> StateT a IO ()

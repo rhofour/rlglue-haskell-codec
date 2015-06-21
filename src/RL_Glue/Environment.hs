@@ -1,4 +1,4 @@
-module RLEnvironment (
+module RL_Glue.Environment (
   Environment(Environment), loadEnvironment
   ) where
 
@@ -14,8 +14,8 @@ import Data.Word
 import Network.Simple.TCP
 import System.Exit
 
-import Paths_rlglue_haskell_codec (version)
-import RLNetwork
+import Paths_rlglue (version)
+import RL_Glue.Network
 
 data Environment a = Environment
   { onEnvInit :: (StateT a IO BS.ByteString)
