@@ -1,5 +1,5 @@
 name:                rlglue
-version:             0.2.0.0
+version:             0.2.1.1
 synopsis:            A Haskell codec for RL-Glue.
 description:         A codec to allow Haskell programs to interact with reinforcement learning
                      programs using the RL_Glue protocol.
@@ -30,7 +30,7 @@ executable skeleton-experiment
   Main-is:             SkeletonExperiment.hs
   build-depends:       base >=4.7 && <4.8, network-simple, transformers, exceptions, binary, bytestring,
                        data-binary-ieee754
-  other-modules:       RL_Glue.Network, RL_Glue.Experiment
+  -- other-modules:
   hs-source-dirs:      src, src/RL_Glue/Example
   default-language:    Haskell2010
 
@@ -38,7 +38,7 @@ executable skeleton-environment
   Main-is:             SkeletonEnvironment.hs
   build-depends:       base >=4.7 && <4.8, network-simple, transformers, exceptions, binary, bytestring,
                        data-binary-ieee754
-  other-modules:       RL_Glue.Network, RL_Glue.Environment
+  -- other-modules:
   hs-source-dirs:      src, src/RL_Glue/Example
   default-language:    Haskell2010
 
@@ -46,6 +46,6 @@ executable skeleton-agent
   Main-is:             SkeletonAgent.hs
   build-depends:       base >=4.7 && <4.8, network-simple, transformers, exceptions, binary, bytestring,
                        data-binary-ieee754, random
-  other-modules:       RL_Glue.Network, RL_Glue.Agent
+  -- other-modules: 
   hs-source-dirs:      src, src/RL_Glue/Example
   default-language:    Haskell2010

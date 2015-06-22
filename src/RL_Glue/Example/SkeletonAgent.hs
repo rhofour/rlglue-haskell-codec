@@ -10,9 +10,7 @@ import System.Random
 import RL_Glue.Agent
 import RL_Glue.Network
 
-main = do
-  loadAgent (Agent onInit onStart onStep onEnd onCleanup onMessage) ()
-  return ()
+main = loadAgent (Agent onInit onStart onStep onEnd onCleanup onMessage) ()
 
 onInit :: BS.ByteString -> StateT () IO ()
 onInit taskSpec = return ()

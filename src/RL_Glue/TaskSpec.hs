@@ -6,13 +6,14 @@ module RL_Glue.TaskSpec (
   -- ** Bounds
   LowBound(LowBound, NegInf, LBUnspec), UpBound(UpBound, PosInf, UBUnspec),
   -- * Parsing functions
-  toTaskSpec, parseTaskSpec
+  toTaskSpec, toTaskSpecOrDie, parseTaskSpec
   ) where
 
 import Control.Monad
 import qualified Data.ByteString as BS
 import Text.Parsec
 import Text.Parsec.ByteString
+import System.Exit
 
 -- Datatype definitions
 data TaskSpec = TaskSpec ProblemType DiscountFactor AbsDataType AbsDataType RewardBounds String
@@ -39,6 +40,9 @@ type RewardBounds = DataBounds Double
 -- Parsing functions
 toTaskSpec :: BS.ByteString -> Either ParseError TaskSpec
 toTaskSpec = parse parseTaskSpec "(network)"
+
+toTaskSpecOrDie :: BS.ByteString -> IO TaskSpec
+toTaskSpecOrDie str = either (\x -> print x >> exitFailure) return (toTaskSpec str)
 
 parseTaskSpec = do
   parseVersion
