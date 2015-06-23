@@ -1,5 +1,5 @@
 name:                rlglue
-version:             0.2.1.1
+version:             0.2.1.2
 synopsis:            A Haskell codec for RL-Glue.
 description:         A codec to allow Haskell programs to interact with reinforcement learning
                      programs using the RL_Glue protocol.
@@ -19,7 +19,7 @@ source-repository head
 library
   exposed-modules:     RL_Glue.Network, RL_Glue.Experiment, RL_Glue.Environment, RL_Glue.Agent,
                        RL_Glue.TaskSpec
-  -- other-modules:       
+  other-modules:       Paths_rlglue
   -- other-extensions:    
   build-depends:       base >=4.7 && <4.8, network-simple, transformers, exceptions, binary, bytestring,
                        data-binary-ieee754, parsec
