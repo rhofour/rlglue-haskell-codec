@@ -1,5 +1,5 @@
 module RL_Glue.Agent (
-  Agent(Agent), loadAgent
+  Agent(Agent), loadAgentDebug, loadAgent
   ) where
 
 import Control.Monad (unless)
@@ -27,8 +27,11 @@ data Agent a = Agent
   , onAgentMessage :: BS.ByteString -> StateT a IO BS.ByteString
   }
 
-loadAgent ::  Agent a -> a -> IO ()
-loadAgent agent initState =
+loadAgent :: Agent a -> a -> IO ()
+loadAgent = loadAgentDebug 0
+
+loadAgentDebug :: Int -> Agent a -> a -> IO ()
+loadAgentDebug debugLvl agent initState =
   let 
     func (sock, addr) =
       do
@@ -38,12 +41,12 @@ loadAgent agent initState =
         sendLazy sock bs
 
         -- Run event loop
-        evalStateT (eventLoop agent sock) initState
+        evalStateT (eventLoop agent sock debugLvl) initState
   in
     glueConnect func
 
-eventLoop :: Agent a -> Socket -> StateT a IO ()
-eventLoop agent sock = do
+eventLoop :: Agent a -> Socket -> Int -> StateT a IO ()
+eventLoop agent sock debugLvl = do
   x <- lift $ runMaybeT (getAgentState sock)
   case x of
     Nothing -> do
@@ -51,12 +54,13 @@ eventLoop agent sock = do
       lift $ exitWith (ExitFailure 1)
     Just (state, size) ->
       unless (state == kRLTerm) $ do
-        handleState sock agent state
-        eventLoop agent sock
+        handleState sock agent state debugLvl
+        eventLoop agent sock debugLvl
 
-handleState :: Socket -> Agent a -> Word32 -> StateT a IO ()
-handleState sock agent state
+handleState :: Socket -> Agent a -> Word32 -> Int -> StateT a IO ()
+handleState sock agent state debugLvl
   | state == kAgentInit = do
+    lift $ unless (debugLvl < 1) $ putStrLn "kAgentInit received"
     taskSpec <- lift $ getStringOrDie "Error: Could not get task spec" sock
     onAgentInit agent taskSpec
     let packedMsg = runPut (
@@ -64,6 +68,7 @@ handleState sock agent state
           putWord32be 0)
     sendLazy sock packedMsg
   | state == kAgentStart = do
+    lift $ unless (debugLvl < 1) $ putStrLn "kAgentStart received"
     obs <- lift $ getObservationOrDie sock
     action <- onAgentStart agent obs
     let size = sizeOfAction action
@@ -73,6 +78,7 @@ handleState sock agent state
           putAction action)
     sendLazy sock packedMsg
   | state == kAgentStep = do
+    lift $ unless (debugLvl < 1) $ putStrLn "kAgentStep received"
     rewardObs <- lift $ getRewardObservationOrDie sock
     action <- onAgentStep agent rewardObs
     let size = sizeOfAction action
@@ -82,6 +88,7 @@ handleState sock agent state
           putAction action)
     sendLazy sock packedMsg
   | state == kAgentEnd = do
+    lift $ unless (debugLvl < 1) $ putStrLn "kAgentEnd received"
     reward <- lift $ getRewardOrDie sock
     onAgentEnd agent reward
     let packedMsg = runPut (
@@ -89,12 +96,14 @@ handleState sock agent state
           putWord32be 0)
     sendLazy sock packedMsg
   | state == kAgentCleanup = do
+    lift $ unless (debugLvl < 1) $ putStrLn "kAgentCleanup received"
     onAgentCleanup agent
     let packedMsg = runPut (
           putWord32be kAgentCleanup >>
           putWord32be 0)
     sendLazy sock packedMsg
   | state == kAgentMessage = do
+    lift $ unless (debugLvl < 1) $ putStrLn "kAgentMessage received"
     msg <- lift $ getStringOrDie "Error: Could not read message" sock
     resp <- onAgentMessage agent msg
     let packedMsg = runPut (
@@ -105,7 +114,8 @@ handleState sock agent state
               putWord32be (fromIntegral $ 4 + BS.length resp) >>
               putString resp)
     sendLazy sock packedMsg
-  | state == kRLTerm = lift $ return ()
+  | state == kRLTerm = 
+    lift $ unless (debugLvl < 1) $ putStrLn "kRLTerm received"
   | otherwise  = do
     lift $ putStrLn $ "Error: Unknown state: " ++ show state
     lift $ exitWith (ExitFailure 1)

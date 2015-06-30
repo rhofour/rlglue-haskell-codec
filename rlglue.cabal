@@ -1,5 +1,5 @@
 name:                rlglue
-version:             0.2.1.2
+version:             0.2.2.0
 synopsis:            A Haskell codec for RL-Glue.
 description:         A codec to allow Haskell programs to interact with reinforcement learning
                      programs using the RL_Glue protocol.
