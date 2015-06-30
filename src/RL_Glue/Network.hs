@@ -45,6 +45,7 @@ import qualified Data.ByteString.Char8 as BSC
 import qualified Data.ByteString.Lazy as LBS
 import Data.Word
 import Network.Simple.TCP
+import Network.Socket (socketPort)
 import System.Environment
 import System.Exit
 import System.IO.Error
@@ -207,9 +208,10 @@ glueConnect func =
       (\_ -> return kDefaultPort)
     let func' :: (Socket, SockAddr) -> IO r
         func' (sock, addr) = do
-          putStrLn ("Connecting to " ++ show addr ++ " on port " ++ port ++ "...")
+          clientPort <- socketPort sock
+          putStrLn $ "Connecting to " ++ show addr ++ " on port " ++ show clientPort ++ "..."
           x <- func (sock, addr)
-          putStrLn ("Disconnecting from " ++ show addr ++ " on port " ++ port ++ "...")
+          putStrLn ("Disconnecting from " ++ show addr ++ "...")
           return x
     connect host port func'
 
