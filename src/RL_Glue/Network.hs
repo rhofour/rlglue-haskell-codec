@@ -238,20 +238,20 @@ doStandardRecv sock =
 getInt :: Socket -> MaybeT IO Int
 getInt sock =
   do
-    bs <- recvExactly sock 4
+    bs <- recvExactly sock kIntSize
     return . fromIntegral $ runGet getWord32be (LBS.fromStrict bs)
 
 getDouble :: Socket -> MaybeT IO Double
 getDouble sock =
   do
-    bs <- recvExactly sock 8
+    bs <- recvExactly sock kDoubleSize
     return  $ runGet getFloat64be (LBS.fromStrict bs)
 
 getString :: Socket -> MaybeT IO BS.ByteString
 getString sock =
   do
     length <- getInt sock
-    recvExactly sock (4*length) -- This is probably wrong
+    recvExactly sock (length * kCharSize)
 
 getStringOrDie :: String -> Socket -> IO BS.ByteString
 getStringOrDie = orDie getString
