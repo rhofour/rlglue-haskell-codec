@@ -268,9 +268,8 @@ recvExactly sock nBytes = do
   if len == nBytes 
     then return maybeBs
     else do
-      lift . putStrLn $ "Error: Received " ++ show len ++ " bytes when "
-        ++ show nBytes ++ " bytes were expected."
-      MaybeT $ return Nothing
+      remainingBs <- recvExactly sock (nBytes - len)
+      return $ BS.append maybeBs remainingBs
 
 -- Other functions
 confirmState :: Socket -> Word32 -> IO ()
