@@ -129,9 +129,10 @@ sizeOfRewardObs (_, _, obs) =
 getAbstractType :: Socket -> MaybeT IO RLAbstractType
 getAbstractType sock =
   do
-    bs1 <- MaybeT $ recv sock (3*4)
+    bs1 <- recvExactly sock (3*4)
     let (numInts, numDoubles, numChars) = runGet parseBytes1 (LBS.fromStrict bs1)
-    bs2 <- MaybeT $ recv sock (numInts*4 + numDoubles*8 + numChars)
+    let size = numInts*kIntSize + numDoubles*kDoubleSize + numChars*kCharSize
+    bs2 <- recvExactly sock size
     return $ runGet (parseBytes2 numInts numDoubles numChars) (LBS.fromStrict bs2)
     where
       parseBytes1 = do
@@ -226,7 +227,7 @@ doCallWithNoParams sock x =
 doStandardRecv :: Socket -> MaybeT IO (Word32, Word32)
 doStandardRecv sock =
   do
-    bs <- MaybeT $ recv sock (2*4)
+    bs <- recvExactly sock (2*4)
     return $ runGet parseBytes (LBS.fromStrict bs)
     where
       parseBytes = do
@@ -237,20 +238,20 @@ doStandardRecv sock =
 getInt :: Socket -> MaybeT IO Int
 getInt sock =
   do
-    bs <- MaybeT $ recv sock 4
+    bs <- recvExactly sock 4
     return . fromIntegral $ runGet getWord32be (LBS.fromStrict bs)
 
 getDouble :: Socket -> MaybeT IO Double
 getDouble sock =
   do
-    bs <- MaybeT $ recv sock 8
+    bs <- recvExactly sock 8
     return  $ runGet getFloat64be (LBS.fromStrict bs)
 
 getString :: Socket -> MaybeT IO BS.ByteString
 getString sock =
   do
     length <- getInt sock
-    MaybeT $ recv sock (4*length)
+    recvExactly sock (4*length) -- This is probably wrong
 
 getStringOrDie :: String -> Socket -> IO BS.ByteString
 getStringOrDie = orDie getString
@@ -259,6 +260,17 @@ putString :: BS.ByteString -> Put
 putString bs = do
   putWord32be (fromIntegral (BS.length bs))
   putByteString bs
+
+recvExactly :: Socket -> Int -> MaybeT IO BS.ByteString
+recvExactly sock nBytes = do
+  maybeBs <- MaybeT $ recv sock nBytes
+  let len = BS.length maybeBs
+  if len == nBytes 
+    then return maybeBs
+    else do
+      lift . putStrLn $ "Error: Received " ++ show len ++ " bytes when "
+        ++ show nBytes ++ " bytes were expected."
+      MaybeT $ return Nothing
 
 -- Other functions
 confirmState :: Socket -> Word32 -> IO ()
